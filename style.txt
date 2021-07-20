@@ -1,0 +1,55 @@
+function add_multiply(num x, num y) -> num {
+    num z = x + y
+    num w = x * y
+
+    return z + w
+}
+
+object Counter {
+    num number
+
+    function Counter(num base = 0) {
+        number = base
+    }
+
+    function reset() -> none {
+        number = 0
+    }
+
+    function increment(num offset = 1) -> none {
+        number + offset
+    }
+}
+
+function fib(num n) {
+    if n <= 1 {
+        return n
+    }
+    else {
+        return fib(n - 1) + fib(n - 2)
+    }
+}
+
+function array_thing() -> none {
+    array my_array = array<16>
+
+    for $0 < my_array.length {
+        my_array = fib($0)
+    }
+}
+
+// comment ! 
+# this also works ! 
+
+function main() -> none {
+    counter_1 = Counter<>
+    counter_2 = Counter<5>
+
+    for $0 < add_multiply(3, 5) {
+        counter_1.increment()
+    }
+
+    for $0 < add_multiply(2, 6) {
+        counter_2.increment(3)
+    }
+}
