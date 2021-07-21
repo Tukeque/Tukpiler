@@ -7,7 +7,7 @@ maxvariables = 64
 maxregs = config.config["regs"]
 usednames: list[str] = ["+", "//", "*", "^", "&", "|", "-", "num", "function", "object", "=", "==", ">=", "<=", "!=", ">", "<", "none", "array", "->", "{", "}", "\"", "[", "]", ",", "(", ")", "$", ".", ";", "%"]
 
-def getvariablefreepointer(width: int) -> int:
+def get_variable_free_pointer(width: int) -> int:
     global usedvariablepointers
 
     for i in freepointers:
@@ -24,7 +24,7 @@ def getvariablefreepointer(width: int) -> int:
     error.error("exceeded the maximum amount of variables")
     return -1
 
-def getvariableidentifier() -> int:
+def get_variable_identifier() -> int:
     global nextvariableidentifier
 
     nextvariableidentifier += 1
@@ -35,10 +35,10 @@ class Var:
         self.name = name
         self.type = type
         self.width = width
-        self.identifier = getvariableidentifier()
+        self.identifier = get_variable_identifier()
         
         if not at_zero:
-            self.pointer = getvariablefreepointer(width)
+            self.pointer = get_variable_free_pointer(width)
         else:
             self.pointer = 0
 
@@ -54,3 +54,28 @@ def get_reg() -> str:
 
 def free_reg(reg: str):
     usedregs.remove(int(reg[1:]))
+
+
+nextfuncidentifier = 0
+func_names: list[str] = []
+def get_function_identifier() -> int:
+    global nextfuncidentifier
+
+    nextfuncidentifier += 1
+    return nextfuncidentifier
+
+class Func():
+    def __init__(self, name, args, return_type):
+        global func_names
+
+        self.name = name
+        self.args = args
+        self.return_type = return_type
+        self.identifier = get_function_identifier()
+        if name in func_names:
+            error.error(f"tried to create a function that already exists({name})")
+        else:
+            func_names.append(name)
+
+    def print(self):
+        print(f"function {self.name} with identifier {self.identifier}, args {self.args} and return type {self.return_type}")

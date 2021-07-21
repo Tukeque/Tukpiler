@@ -148,5 +148,3 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int) -> list[str]:
             free_reg(op)
 
     return urcl
-
-
