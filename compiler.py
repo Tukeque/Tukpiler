@@ -1,5 +1,5 @@
 import error, config, parse
-from functions import Func, Var
+from functions import Func, Var, get_reg
 from shunting import shunt, to_urcl
 
 vars: dict[str, Var] = {}
@@ -10,15 +10,18 @@ type_to_width = {
     "array": -1, # width is variable depending on length of array
     "none": 1
 }
-header = [f"BITS == {config.config['bits']}", f"MINHEAP {config.config['ram']}", f"MINREG {config.config['regs']}", f"RUN {config.config['run'].upper()}", f"MINSTACK {config.config['stack']}"]
+header = [f"BITS == {config.config['bits']}", f"MINHEAP {config.config['ram']}", f"MINREG {config.config['regs']}", f"RUN {config.config['run'].upper()}", f"MINSTACK {config.config['stack']}", "JMP .main"]
 funcrcl = []
-urcl = []
+func_name = ""
+urcl = [".main"]
+
+def add_urcl(content: list[str]):
+    global urcl
+
+    urcl += content
 
 def compile_expr(tokens: list[str], func = False):
-    if not func:
-        global urcl
-    else:
-        urcl = []
+    urcl = []
     
     if len(tokens) < 2:
         error.error(f"invalid syntax at {tokens}")
@@ -43,27 +46,56 @@ def compile_expr(tokens: list[str], func = False):
         if vars[tokens[0]].type == "num": # todo resolve functions before shunt
             urcl += to_urcl(shunt(tokens[2:], [], vars), vars, vars[tokens[0]].pointer)
 
-    if func:
-        return urcl
+    if tokens[0] == "return": # returning
+        if funcs[func_name].return_type == "num":
+            urcl += to_urcl(shunt(tokens[1:], [], vars), vars, 0, ret = True)
+            urcl += "RET"
+
+    if not func:
+        add_urcl(urcl)
+
+    return urcl
 
 # compile_obj when
 
 def add_funcrcl(urcl: list[str]):
     global funcrcl
+    print(f"going to add to funcrcl: {urcl}")
 
     funcrcl += urcl
 
 def compile_func(tokens: list[str]):
-    global funcrcl
+    global funcrcl, func_name
 
     #function add ( num x , num y ) - > num { ... }
     name = tokens[1]
+    func_name = name
     args = " ".join(tokens[tokens.index("(") + 1:tokens.index(")")]).split(",")
     args = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in args]
     return_type = tokens[tokens.index(")") + 3]
 
     funcs[name] = Func(name, args, return_type)
     funcrcl.append(f".function_{name}")
+    arg_table: dict[str, str] = {}
+
+    # todo save old variables and then rewrite them as args and then when function is over restore them
+
+    for arg in args:
+        reg = get_reg()
+        arg_table[arg[0]] = reg # setup an argument to reg table
+        funcrcl.append(f"POP {reg}")
+
+    # argument pointers are succesfully extracted
+    # gotta make them as variables now
+
+    for arg in args:
+        vars[arg[0]] = Var(arg[0], arg[1], 1, argument = True, reg = arg_table[arg[0]])
     
     # compile insides
     parse.parse(tokens[tokens.index("{") + 1:-1], True)
+
+    if funcrcl[-1][0:3] != "RET": # add return if it doesnt have one
+        funcrcl.append("PSH 0")
+        funcrcl.append("RET")
+
+    func = ""

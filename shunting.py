@@ -1,7 +1,7 @@
 from functions import Var, get_reg, free_reg
 import error
 
-# operators: + - / * % | & ^ **
+# operators: + - / * % | & ^
 operator_list = ["+", "-", "*", "/", "%", "|", "&", "^", "**"]
 operator_to_urcl = {
     "+": "ADD",
@@ -100,13 +100,13 @@ def handle(urcl: list[str], tempregs: list[str], x: str, vars: dict[str, Var]) -
             error.error(f"WAT, {x} is not in vars")
         else:
             tempregs.append(get_reg())
-            urcl.append(f"LOD {tempregs[-1]} #{vars[x].pointer}")
+            urcl.append(f"LOD {tempregs[-1]} {vars[x].pointer}")
             return tempregs[-1]
 
 def trash_operand(operand):
     if operand[0] == "R": free_reg(operand)
 
-def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int) -> list[str]:
+def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -> list[str]:
     operands = []
     tempregs = []
     urcl = []
@@ -126,7 +126,7 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int) -> list[str]:
                     handletemps = []
                     tempregs.append(get_reg()) 
                     result_reg = tempregs[-1]
-                    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a, vars)}   {handle(urcl, handletemps, b, vars)}")
+                    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a, vars)} {handle(urcl, handletemps, b, vars)}")
 
                     for reg in handletemps:
                         free_reg(reg)
@@ -141,7 +141,10 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int) -> list[str]:
                 operands = operands[:-2]
                 exec(f"operands.append(str(int(int(a) {token} int(b))))")
 
-    urcl.append(f"STR #{pointer} {operands[-1]}")
+    if not ret:
+        urcl.append(f"STR {pointer} {operands[-1]}")
+    else:
+        urcl.append(f"PSH {operands[-1]}")
 
     for op in operands:
         if op[0] == "R":

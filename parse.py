@@ -83,7 +83,7 @@ def parse(tokens: list[str], func = False):
         if not func:
             compiler.compile_expr(expr)
         else:
-            compiler.add_funcrcl(compiler.compile_expr(expr, func))
+            compiler.add_funcrcl(compiler.compile_expr(expr, True))
 
 
     # step 3: call parser again with all groups of tokens inside

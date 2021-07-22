@@ -31,14 +31,16 @@ def get_variable_identifier() -> int:
     return nextvariableidentifier
 
 class Var:
-    def __init__(self, name: str, type: str, width: int, at_zero = False):
+    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = ""):
         self.name = name
         self.type = type
         self.width = width
         self.identifier = get_variable_identifier()
         
-        if not at_zero:
-            self.pointer = get_variable_free_pointer(width)
+        if not at_zero and argument == False:
+            self.pointer = f"{'M' if config.config['modfix'] == True else '#'}{get_variable_free_pointer(width)}"
+        elif argument == True:
+            self.pointer = reg
         else:
             self.pointer = 0
 
