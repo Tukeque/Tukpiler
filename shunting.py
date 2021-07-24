@@ -144,7 +144,13 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
                 exec(f"operands.append(str(int(int(a) {token} int(b))))")
 
     if not ret:
-        urcl.append(f"STR {pointer} {operands[-1]}")
+        if operands[-1] in vars:
+            reg = get_reg()
+            urcl += [f"LOD {reg} {vars[operands[-1]].pointer}",
+                     f"STR {pointer} {reg}"]
+            free_reg(reg)
+        else:
+            urcl.append(f"STR {pointer} {operands[-1]}")
     else:
         urcl.append(f"PSH {operands[-1]}")
 

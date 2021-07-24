@@ -1,5 +1,4 @@
-import error
-import compiler
+import error, compiler, functions
 
 def return_outsides(tokens: list[str]) -> list[str]:
     inside = False
@@ -75,7 +74,7 @@ def in_scope(tokens: list[str], enter: str, exit: str) -> list[str]:
                 level -= 1
 
             if level == 0:
-                inside = False
+                return result
 
             elif token == enter:
                 level += 1
@@ -89,7 +88,37 @@ def in_scope(tokens: list[str], enter: str, exit: str) -> list[str]:
 
     return result
 
-def parse(tokens: list[str], func = False): # todo parse better
+def parse(tokens: list[str], func = False): # new parse
+    expr = []
+    print(f"tokens to parse {tokens}")
+    tokens += ";"
+
+    i = -1
+    #//for i, token in enumerate(tokens):
+    while i < len(tokens) - 1:
+        i += 1
+        token = tokens[i]
+
+        if token == ";":
+            if expr != [] and len(expr) >= 2:
+                if expr[0] == "function":
+                    compiler.compile_func(expr + in_scope(tokens[i-len(expr):] + ["}"], "{", "}"))
+                    i += len(in_scope(tokens[i-len(expr):], "{", "}"))
+
+                elif expr[0] == "object":
+                    error.error("objects arent implemented yet. try again later")
+
+                elif expr[1] == "=" or expr[0] in functions.types:
+                    if not func:
+                        compiler.compile_expr(expr)
+                    else:
+                        compiler.add_funcrcl(compiler.compile_expr(expr, True))
+
+                expr = []
+        else:
+            expr.append(token)
+
+def parse_old(tokens: list[str], func = False): # todo parse better
     # step 1: get all the tokens that are outside functions or classes
     outsides = return_outsides(tokens)
     out_expressions = " ".join(outsides).split(";")
@@ -120,5 +149,5 @@ def parse(tokens: list[str], func = False): # todo parse better
             print(block)
             if block[0] == "function":
                 compiler.compile_func(block)
-            elif block[1] == "object":
+            elif block[0] == "object":
                 error.error("objects arent supported yet")

@@ -5,7 +5,8 @@ freepointers: list[int] = range(config.config["ram"])[1:]
 usedvariablepointers: list[int] = []
 maxvariables = 64
 maxregs = config.config["regs"]
-usednames: list[str] = ["+", "//", "*", "^", "&", "|", "-", "num", "function", "object", "=", "==", ">=", "<=", "!=", ">", "<", "none", "array", "->", "{", "}", "\"", "[", "]", ",", "(", ")", "$", ".", ";", "%"]
+usednames: list[str] = ["+", "//", "*", "^", "&", "|", "-", "num", "function", "object", "=", "==", ">=", "<=", "!=", ">", "<", "none", "array", "->", "{", "}", "\"", "[", "]", ",", "(", ")", "$", ".", ";", "%", "[", "]"]
+types = ["num", "none", "array"]
 
 def get_variable_free_pointer(width: int) -> int:
     global usedvariablepointers

@@ -1,4 +1,4 @@
-import parse, lexer, error, compiler, config, sys
+import parse, lexer, error, compiler, sys
 
 print("Tukeque's Programman 2021")
 

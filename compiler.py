@@ -36,7 +36,7 @@ def resolve(tokens: list[str]) -> list[str]:
                 scope = parse.in_scope(tokens[2:][i:], "(", ")")
 
                 # loop for each arg and shunt it to a variable
-                args_split = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in " ".join(scope).split(";")]
+                args_split = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in " ".join(scope).split(",")]
                 send_args: list[str] = []
                 temp: list[str] = []
 
@@ -53,7 +53,7 @@ def resolve(tokens: list[str]) -> list[str]:
 
                         urcl += resolve([name, "="] + arg)
 
-                urcl.append += [f"PSH {vars[x].pointer}" for x in send_args]
+                urcl += [f"PSH {vars[x].pointer}" for x in send_args]
 
                 name = f"TEMP_VAR_{functions.nextvariableidentifier}"
                 vars[name] = Var(name, "num", 1)
@@ -61,7 +61,7 @@ def resolve(tokens: list[str]) -> list[str]:
 
                 urcl += [f"CAL .function_{token}",
                          f"POP {reg}",
-                         f"STR {vars[name].pointer}, {reg}"]
+                         f"STR {vars[name].pointer} {reg}"]
 
                 to_shunt.append(name)
                 free_reg(reg)
@@ -80,6 +80,7 @@ def resolve(tokens: list[str]) -> list[str]:
     return urcl
 
 def compile_expr(tokens: list[str], func = False):
+    print(f"compiling expression {tokens}")
     urcl = []
     
     if len(tokens) < 2:
@@ -124,6 +125,8 @@ def add_funcrcl(urcl: list[str]):
 
 def compile_func(tokens: list[str]):
     global funcrcl, func_name, vars
+
+    print(f"compiling function {tokens}")
 
     #function add ( num x , num y ) - > num { ... }
     name = tokens[1]
