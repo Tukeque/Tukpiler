@@ -48,6 +48,7 @@ def precedence(operator) -> int:
     }[operator]
 
 def shunt(tokens: list[str], functions: list[str], vars: list[str]) -> list[str]: # returns in RPN
+    print(f"shunting {tokens}")
     operators: list[str] = []
     output: list[str] = []
 
@@ -59,7 +60,6 @@ def shunt(tokens: list[str], functions: list[str], vars: list[str]) -> list[str]
 
         elif token in unary_functions: # its a function
             operators.append(token)
-            # TODO deal with it before so it only gives a stream of numbers and variables
 
         elif token in operator_list:
             while (len(operators) >= 1 and operators[-1] != "(") and (precedence(operators[-1]) > precedence(token) or (precedence(operators[-1]) == precedence(token) and associativity(token) == "left")):
@@ -82,13 +82,12 @@ def shunt(tokens: list[str], functions: list[str], vars: list[str]) -> list[str]
             if operators[-1] in unary_functions:
                 output.append(operators.pop()) # unambiguaize
     else: # after
-        print("end")
         while len(operators) != 0:
             assert operators[-1] != "("
 
             output.append(operators.pop())
 
-    print(output)
+    print(f"done shunting: {output}")
 
     return output
 
@@ -107,6 +106,9 @@ def trash_operand(operand):
     if operand[0] == "R": free_reg(operand)
 
 def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -> list[str]:
+    if shunt == []:
+        return []
+
     operands = []
     tempregs = []
     urcl = []

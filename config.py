@@ -1,5 +1,5 @@
 config = {
-    "regs": 32,
+    "regs": 8,
     "bits": 16,
     "ram": 65536,
     "stack": 256,

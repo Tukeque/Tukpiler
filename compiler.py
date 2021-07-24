@@ -1,6 +1,7 @@
-import error, config, parse
-from functions import Func, Var, get_reg
+import error, config, parse, functions
+from functions import Func, Var, free_reg, get_reg
 from shunting import shunt, to_urcl
+from copy import copy
 
 vars: dict[str, Var] = {}
 funcs: dict[str, Func] = {}
@@ -19,6 +20,64 @@ def add_urcl(content: list[str]):
     global urcl
 
     urcl += content
+
+def resolve(tokens: list[str]) -> list[str]:
+    urcl = []
+
+    if vars[tokens[0]].type == "num":
+        to_shunt = []
+        i = -1
+        print(f"resolving {tokens[2:]}")
+        while i < len(tokens[2:]) - 1:
+            i += 1
+            token = tokens[2:][i]
+
+            if token in funcs: # token is a function (power( ... ))
+                scope = parse.in_scope(tokens[2:][i:], "(", ")")
+
+                # loop for each arg and shunt it to a variable
+                args_split = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in " ".join(scope).split(";")]
+                send_args: list[str] = []
+                temp: list[str] = []
+
+                for arg in args_split:
+                    assert len(arg) >= 1
+
+                    if len(arg) == 1 and arg[0] in vars: # arg is just a variable
+                        send_args.append(arg[0])
+                    else:
+                        name = f"TEMP_VAR_{functions.nextvariableidentifier}" # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
+                        vars[name] = Var(name, "num", 1) #! ^
+                        send_args.append(name)
+                        temp.append(name)
+
+                        urcl += resolve([name, "="] + arg)
+
+                urcl.append += [f"PSH {vars[x].pointer}" for x in send_args]
+
+                name = f"TEMP_VAR_{functions.nextvariableidentifier}"
+                vars[name] = Var(name, "num", 1)
+                reg = get_reg()
+
+                urcl += [f"CAL .function_{token}",
+                         f"POP {reg}",
+                         f"STR {vars[name].pointer}, {reg}"]
+
+                to_shunt.append(name)
+                free_reg(reg)
+
+                for var in temp:
+                    vars.pop(var)
+
+                i += len(scope) + 2
+            else:
+                to_shunt.append(token)
+
+        print(f"resolved {to_shunt}")
+
+        urcl += to_urcl(shunt(to_shunt, [], vars), vars, vars[tokens[0]].pointer)
+
+    return urcl
 
 def compile_expr(tokens: list[str], func = False):
     urcl = []
@@ -43,13 +102,12 @@ def compile_expr(tokens: list[str], func = False):
             print("why would you even want to declare a none?")
 
     if tokens[1] == "=": # set
-        if vars[tokens[0]].type == "num": # todo resolve functions before shunt
-            urcl += to_urcl(shunt(tokens[2:], [], vars), vars, vars[tokens[0]].pointer)
+        urcl += resolve(tokens)
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
             urcl += to_urcl(shunt(tokens[1:], [], vars), vars, 0, ret = True)
-            urcl += "RET"
+            urcl.append("RET")
 
     if not func:
         add_urcl(urcl)
@@ -65,31 +123,31 @@ def add_funcrcl(urcl: list[str]):
     funcrcl += urcl
 
 def compile_func(tokens: list[str]):
-    global funcrcl, func_name
+    global funcrcl, func_name, vars
 
     #function add ( num x , num y ) - > num { ... }
     name = tokens[1]
     func_name = name
     args = " ".join(tokens[tokens.index("(") + 1:tokens.index(")")]).split(",")
-    args = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in args]
+    args = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in args] # num x
+    print(args)
     return_type = tokens[tokens.index(")") + 3]
 
     funcs[name] = Func(name, args, return_type)
     funcrcl.append(f".function_{name}")
     arg_table: dict[str, str] = {}
 
-    # todo save old variables and then rewrite them as args and then when function is over restore them
-
     for arg in args:
         reg = get_reg()
-        arg_table[arg[0]] = reg # setup an argument to reg table
+        arg_table[arg[1]] = reg # setup an argument to reg table
         funcrcl.append(f"POP {reg}")
 
     # argument pointers are succesfully extracted
     # gotta make them as variables now
 
+    before = copy(vars)
     for arg in args:
-        vars[arg[0]] = Var(arg[0], arg[1], 1, argument = True, reg = arg_table[arg[0]])
+        vars[arg[1]] = Var(arg[1], arg[0], 1, argument = True, reg = arg_table[arg[1]])
     
     # compile insides
     parse.parse(tokens[tokens.index("{") + 1:-1], True)
@@ -98,4 +156,5 @@ def compile_func(tokens: list[str]):
         funcrcl.append("PSH 0")
         funcrcl.append("RET")
 
-    func = ""
+    func_name = ""
+    vars = before

@@ -64,7 +64,32 @@ def return_insides(tokens: list[str]) -> list[str]:
 
     return result
 
-def parse(tokens: list[str], func = False):
+def in_scope(tokens: list[str], enter: str, exit: str) -> list[str]:
+    level = 0
+    inside = False
+    result = []
+
+    for token in tokens:
+        if inside:
+            if token == exit:
+                level -= 1
+
+            if level == 0:
+                inside = False
+
+            elif token == enter:
+                level += 1
+
+        if inside:
+            result.append(token)
+
+        if token == enter:
+            level += 1
+            inside = True
+
+    return result
+
+def parse(tokens: list[str], func = False): # todo parse better
     # step 1: get all the tokens that are outside functions or classes
     outsides = return_outsides(tokens)
     out_expressions = " ".join(outsides).split(";")
