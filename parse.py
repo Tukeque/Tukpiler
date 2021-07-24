@@ -88,13 +88,17 @@ def in_scope(tokens: list[str], enter: str, exit: str) -> list[str]:
 
     return result
 
+def is_expr(expr: list[str]):
+    if expr[1] == "=" or expr[0] in functions.types or expr[0] == "return":
+        return True
+    return False
+
 def parse(tokens: list[str], func = False): # new parse
     expr = []
     print(f"tokens to parse {tokens}")
     tokens += ";"
 
     i = -1
-    #//for i, token in enumerate(tokens):
     while i < len(tokens) - 1:
         i += 1
         token = tokens[i]
@@ -102,19 +106,18 @@ def parse(tokens: list[str], func = False): # new parse
         if token == ";":
             if expr != [] and len(expr) >= 2:
                 if expr[0] == "function":
-                    compiler.compile_func(expr + in_scope(tokens[i-len(expr):] + ["}"], "{", "}"))
+                    compiler.compile_func(expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"])
                     i += len(in_scope(tokens[i-len(expr):], "{", "}"))
 
                 elif expr[0] == "object":
                     error.error("objects arent implemented yet. try again later")
 
-                elif expr[1] == "=" or expr[0] in functions.types:
+                elif is_expr(expr):
                     if not func:
                         compiler.compile_expr(expr)
                     else:
                         compiler.add_funcrcl(compiler.compile_expr(expr, True))
 
-                expr = []
+            expr = []
         else:
             expr.append(token)
-

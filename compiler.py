@@ -159,5 +159,8 @@ def compile_func(tokens: list[str]):
         funcrcl.append("PSH 0")
         funcrcl.append("RET")
 
+    for arg in arg_table:
+        free_reg(arg_table[arg])
+
     func_name = ""
     vars = before
