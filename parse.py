@@ -118,36 +118,3 @@ def parse(tokens: list[str], func = False): # new parse
         else:
             expr.append(token)
 
-def parse_old(tokens: list[str], func = False): # todo parse better
-    # step 1: get all the tokens that are outside functions or classes
-    outsides = return_outsides(tokens)
-    out_expressions = " ".join(outsides).split(";")
-    out_expressions = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in out_expressions]
-
-    new_out = []
-    for out in out_expressions:
-        if out != [""]:
-            new_out.append(out)
-    out_expressions: list[list[str]] = new_out
-    
-    # step 2: compile those
-    print(out_expressions)
-
-    for expr in out_expressions:
-        if not func:
-            compiler.compile_expr(expr)
-        else:
-            compiler.add_funcrcl(compiler.compile_expr(expr, True))
-
-
-    # step 3: call parser again with all groups of tokens inside
-    insides = return_insides(tokens)
-    print(insides)
-
-    if insides != [[]]:
-        for block in insides:
-            print(block)
-            if block[0] == "function":
-                compiler.compile_func(block)
-            elif block[0] == "object":
-                error.error("objects arent supported yet")
