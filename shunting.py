@@ -96,7 +96,7 @@ def handle(urcl: list[str], tempregs: list[str], x: str, vars: dict[str, Var]) -
         return x
     else:
         if x not in vars:
-            error.error(f"WAT, {x} is not in vars")
+            error.error(f"{x} is not in vars")
         else:
             tempregs.append(get_reg())
             urcl.append(f"LOD {tempregs[-1]} {vars[x].pointer}")
@@ -136,7 +136,7 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
                     operands.append(result_reg)
                     trash_operand(a); trash_operand(b)
                 else:
-                    error.error("powers are unsupported for now, try later .v.")
+                    error.error("powers are unsupported for now, try again later")
                     
             else:
                 a, b = operands[-2], operands[-1]

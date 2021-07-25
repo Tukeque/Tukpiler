@@ -1,66 +1,8 @@
 import error, compiler, functions
 
-def return_outsides(tokens: list[str]) -> list[str]:
-    inside = False
-    level = 0
-    outsides: list[str] = []
-    starters = ["function", "object", "for", "while", "if", "else", "elif"]
-
-    for token in tokens:
-        if inside:
-            if level == 0:
-                inside = False
-
-            if token == "{":
-                level += 0.5
-            if token == "}":
-                level -= 1
-
-        if token in starters: # going inside
-            inside = True
-            level += 0.5
-        
-        if not inside:
-            outsides.append(token)
-
-    result = []
-    for outside in outsides:
-        if outside != "":
-            result.append(outside)
-
-    return result
-
-def return_insides(tokens: list[str]) -> list[str]:
-    inside = False
-    level = 0
-    insides: list[str] = [[]]
-    i = 0
-    starters = ["function", "object", "for", "while", "if", "else", "elif"]
-
-    for token in tokens:
-        if inside:
-            if level == 0:
-                inside = False
-                i += 1
-                insides.append([])
-
-            elif token == "{":
-                level += 0.5
-            elif token == "}":
-                level -= 1
-
-        if token in starters:
-            inside = True
-            level += 0.5
-
-        if inside:
-            insides[i].append(token)
-
-    result = []
-    for inside in insides:
-        if inside != [""]:
-            result.append(inside)
-
+def split_list(ls: list[str], splitter: str) -> list[list[str]]:
+    result = " ".join(ls).split(splitter)
+    result = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in result] # num x
     return result
 
 def in_scope(tokens: list[str], enter: str, exit: str) -> list[str]:

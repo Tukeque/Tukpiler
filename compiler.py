@@ -21,6 +21,7 @@ def add_urcl(content: list[str]):
 
     urcl += content
 
+# TODO optimize vvv
 def resolve(tokens: list[str]) -> list[str]:
     urcl = []
 
@@ -115,24 +116,18 @@ def compile_expr(tokens: list[str], func = False):
 
     return urcl
 
-# compile_obj when
-
 def add_funcrcl(urcl: list[str]):
     global funcrcl
-    print(f"going to add to funcrcl: {urcl}")
-
     funcrcl += urcl
 
 def compile_func(tokens: list[str]):
     global funcrcl, func_name, vars
-
     print(f"compiling function {tokens}")
-
     #function add ( num x , num y ) - > num { ... }
+
     name = tokens[1]
     func_name = name
-    args = " ".join(tokens[tokens.index("(") + 1:tokens.index(")")]).split(",")
-    args = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in args] # num x
+    args = parse.split_list(tokens[tokens.index("(") + 1:tokens.index(")")], ";")
     print(args)
     return_type = tokens[tokens.index(")") + 3]
 
@@ -140,27 +135,22 @@ def compile_func(tokens: list[str]):
     funcrcl.append(f".function_{name}")
     arg_table: dict[str, str] = {}
 
+    # extract arguments' pointers and create/overwrite the variables
+    before = copy(vars)
     for arg in args:
         reg = get_reg()
         arg_table[arg[1]] = reg # setup an argument to reg table
         funcrcl.append(f"POP {reg}")
-
-    # argument pointers are succesfully extracted
-    # gotta make them as variables now
-
-    before = copy(vars)
-    for arg in args:
-        vars[arg[1]] = Var(arg[1], arg[0], 1, argument = True, reg = arg_table[arg[1]])
+        vars[arg[1]] = Var(arg[1], arg[0], 1, argument = True, reg = reg)    
     
     # compile insides
     parse.parse(tokens[tokens.index("{") + 1:-1], True)
 
     if funcrcl[-1][0:3] != "RET": # add return if it doesnt have one
-        funcrcl.append("PSH 0")
-        funcrcl.append("RET")
+        funcrcl += ["PSH 0", "RET"]
 
-    for arg in arg_table:
-        free_reg(arg_table[arg])
-
-    func_name = ""
+    # return
+    for arg in arg_table: free_reg(arg_table[arg])
     vars = before
+
+# compile_obj when
