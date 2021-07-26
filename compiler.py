@@ -21,7 +21,7 @@ def add_urcl(content: list[str]):
 
     urcl += content
 
-# TODO optimize vvv
+# TODO clean vvv
 def resolve(tokens: list[str]) -> list[str]:
     urcl = []
 
@@ -131,7 +131,7 @@ def compile_func(tokens: list[str]):
 
     name = tokens[1]
     func_name = name
-    args = parse.split_list(tokens[tokens.index("(") + 1:tokens.index(")")], ";")
+    args = parse.split_list(tokens[tokens.index("(") + 1:tokens.index(")")], ",")
     print(args)
     return_type = tokens[tokens.index(")") + 3]
 

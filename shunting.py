@@ -106,7 +106,7 @@ def handle(urcl: list[str], tempregs: list[str], x: str, vars: dict[str, Var]) -
 def trash_operand(operand):
     if operand[0] == "R": free_reg(operand)
 
-def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
+def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str], vars):
     a, b = operands[-2], operands[-1]
     #trash_operand(operands.pop()); trash_operand(operands.pop())
     operands.pop(); operands.pop()
@@ -136,7 +136,7 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
 
             if not(operands[-1].isnumeric() and operands[-2].isnumeric()):
                 if token != "**":
-                    handle_operator(token, operands, tempregs, urcl)
+                    handle_operator(token, operands, tempregs, urcl, vars)
                 else:
                     error.error("powers are unsupported for now, try again later")
                     
