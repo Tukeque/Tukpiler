@@ -47,7 +47,8 @@ def precedence(operator) -> int:
         "!": 6
     }[operator]
 
-def shunt(tokens: list[str], functions: list[str], vars: list[str]) -> list[str]: # returns in RPN
+#* maybe break up into smaller functions?
+def shunt(tokens: list[str], vars: list[str]) -> list[str]: # returns in RPN
     print(f"shunting {tokens}")
     operators: list[str] = []
     output: list[str] = []
@@ -105,10 +106,24 @@ def handle(urcl: list[str], tempregs: list[str], x: str, vars: dict[str, Var]) -
 def trash_operand(operand):
     if operand[0] == "R": free_reg(operand)
 
-def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -> list[str]:
-    if shunt == []:
-        return []
+def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
+    a, b = operands[-2], operands[-1]
+    #trash_operand(operands.pop()); trash_operand(operands.pop())
+    operands.pop(); operands.pop()
 
+    handletemps = []
+    tempregs.append(get_reg()) 
+    result_reg = tempregs[-1]
+    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a, vars)} {handle(urcl, handletemps, b, vars)}")
+
+    for reg in handletemps:
+        free_reg(reg)
+
+    operands.append(result_reg)
+    trash_operand(a); trash_operand(b)
+
+def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -> list[str]:
+    if shunt == []: return []
     operands = []
     tempregs = []
     urcl = []
@@ -121,20 +136,7 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
 
             if not(operands[-1].isnumeric() and operands[-2].isnumeric()):
                 if token != "**":
-                    a, b = operands[-2], operands[-1]
-                    #trash_operand(operands.pop()); trash_operand(operands.pop())
-                    operands.pop(); operands.pop()
-
-                    handletemps = []
-                    tempregs.append(get_reg()) 
-                    result_reg = tempregs[-1]
-                    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a, vars)} {handle(urcl, handletemps, b, vars)}")
-
-                    for reg in handletemps:
-                        free_reg(reg)
-
-                    operands.append(result_reg)
-                    trash_operand(a); trash_operand(b)
+                    handle_operator(token, operands, tempregs, urcl)
                 else:
                     error.error("powers are unsupported for now, try again later")
                     

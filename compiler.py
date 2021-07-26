@@ -76,9 +76,27 @@ def resolve(tokens: list[str]) -> list[str]:
 
         print(f"resolved {to_shunt}")
 
-        urcl += to_urcl(shunt(to_shunt, [], vars), vars, vars[tokens[0]].pointer)
+        urcl += to_urcl(shunt(to_shunt, vars), vars, vars[tokens[0]].pointer)
 
     return urcl
+
+def declare(tokens: list[str]):
+    global vars
+
+    type = tokens[0]
+    if type == "num": # declaring a number
+        name = tokens[1]
+        vars[name] = Var(name, type, type_to_width[type])
+        if len(tokens) > 2:
+            compile_expr(tokens[1:])
+
+    elif type == "array":
+        error.error("array not implemented yet")
+
+    elif type == "none":
+        name = tokens[1]
+        vars[name] = Var(name, type, type_to_width[type], True)
+        print("why would you even want to declare a none?")
 
 def compile_expr(tokens: list[str], func = False):
     print(f"compiling expression {tokens}")
@@ -88,31 +106,17 @@ def compile_expr(tokens: list[str], func = False):
         error.error(f"invalid syntax at {tokens}")
 
     if tokens[0] in types: # declaring a variable
-        type = tokens[0]
-        if type == "num": # declaring a number
-            name = tokens[1]
-            vars[name] = Var(name, type, type_to_width[type])
-            if len(tokens) > 2:
-                compile_expr(tokens[1:])
-
-        elif type == "array":
-            error.error("array not implemented yet")
-
-        elif type == "none":
-            name = tokens[1]
-            vars[name] = Var(name, type, type_to_width[type], True)
-            print("why would you even want to declare a none?")
+        declare(tokens)
 
     if tokens[1] == "=": # set
         urcl += resolve(tokens)
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
-            urcl += to_urcl(shunt(tokens[1:], [], vars), vars, 0, ret = True)
+            urcl += to_urcl(shunt(tokens[1:], vars), vars, 0, ret = True)
             urcl.append("RET")
 
-    if not func:
-        add_urcl(urcl)
+    if not func: add_urcl(urcl)
 
     return urcl
 
