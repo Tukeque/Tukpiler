@@ -56,7 +56,8 @@ def parse(tokens: list[str], func = False): # new parse
 
                 elif expr[0] == "if":
                     block = []
-                    block += expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"] # borken
+                    #//print(f"if expr: ({expr}); scoped: ({in_scope(tokens[i-len(expr):], '{', '}')})")
+                    block += expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"] # borken??
                     i += len(in_scope(tokens[i-len(expr):], "{", "}"))
 
                     while True: # check for else or elif
@@ -68,7 +69,7 @@ def parse(tokens: list[str], func = False): # new parse
                         else:
                             break
 
-                    compiler.compile_cond(expr)
+                    compiler.compile_cond(block)
 
                 elif is_expr(expr):
                     if not func:
