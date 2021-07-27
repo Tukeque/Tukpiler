@@ -28,6 +28,7 @@ def resolve(tokens: list[str]) -> list[str]:
     if vars[tokens[0]].type == "num":
         to_shunt = []
         i = -1
+        do_shunt = True
         print(f"resolving {tokens[2:]}")
         while i < len(tokens[2:]) - 1:
             i += 1
@@ -56,8 +57,13 @@ def resolve(tokens: list[str]) -> list[str]:
 
                 urcl += [f"PSH {vars[x].pointer}" for x in send_args]
 
-                name = f"TEMP_VAR_{functions.nextvariableidentifier}"
-                vars[name] = Var(name, "num", 1)
+                
+                if tokens[2] in funcs and tokens[4:-1] == parse.in_scope(tokens, "(", ")"):
+                    name = tokens[0]
+                    do_shunt = False
+                else:
+                    name = f"TEMP_VAR_{functions.nextvariableidentifier}"
+                    vars[name] = Var(name, "num", 1)
                 reg = get_reg()
 
                 urcl += [f"CAL .function_{token}",
@@ -76,7 +82,8 @@ def resolve(tokens: list[str]) -> list[str]:
 
         print(f"resolved {to_shunt}")
 
-        urcl += to_urcl(shunt(to_shunt, vars), vars, vars[tokens[0]].pointer)
+        if do_shunt:
+            urcl += to_urcl(shunt(to_shunt, vars), vars, vars[tokens[0]].pointer)
 
     return urcl
 
