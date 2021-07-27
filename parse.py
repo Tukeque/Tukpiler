@@ -54,6 +54,22 @@ def parse(tokens: list[str], func = False): # new parse
                 elif expr[0] == "object":
                     error.error("objects arent implemented yet. try again later")
 
+                elif expr[0] == "if":
+                    block = []
+                    block += expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"] # borken
+                    i += len(in_scope(tokens[i-len(expr):], "{", "}"))
+
+                    while True: # check for else or elif
+                        if tokens[i + 1] == "else" or tokens[i + 1] == "elif":
+                            mini_block = in_scope(tokens[i + 1:], "{", "}") + ["}"]
+                            block += mini_block
+
+                            i += len(mini_block)
+                        else:
+                            break
+
+                    compiler.compile_cond(expr)
+
                 elif is_expr(expr):
                     if not func:
                         compiler.compile_expr(expr)

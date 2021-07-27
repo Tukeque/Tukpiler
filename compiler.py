@@ -164,4 +164,7 @@ def compile_func(tokens: list[str]):
     for arg in arg_table: free_reg(arg_table[arg])
     vars = before
 
+def compile_cond(tokens: list[str]):
+    print(f"condition {tokens}")
+
 # compile_obj when
