@@ -1,0 +1,8 @@
+variables - done
+functions - done
+conditional statements - WIP -> current: making evaluate() function
+recursive functions
+switch statements
+arrays
+dictionaries
+classes

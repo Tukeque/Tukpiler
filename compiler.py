@@ -21,6 +21,14 @@ def add_urcl(content: list[str]):
 
     urcl += content
 
+def temp_var(type = "num") -> str:
+    global vars
+
+    name = f"TEMP_VAR_{functions.nextvariableidentifier}"
+    vars[name] = Var(name, type, type_to_width[type])
+
+    return name
+
 # TODO clean vvv
 def resolve(tokens: list[str]) -> list[str]:
     urcl = []
@@ -123,7 +131,7 @@ def compile_expr(tokens: list[str], func = False):
             urcl += to_urcl(shunt(tokens[1:], vars), vars, 0, ret = True)
             urcl.append("RET")
 
-    if not func: add_urcl(urcl)
+    if not func: add_urcl(urcl) # todo make not needed
 
     return urcl
 

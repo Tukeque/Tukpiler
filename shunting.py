@@ -1,3 +1,4 @@
+import compiler, parse, functions
 from functions import Var, get_reg, free_reg
 import error
 
@@ -161,3 +162,75 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
             free_reg(op)
 
     return urcl
+
+def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a list of new shunt args with functions handled
+    result = []
+    i = -1
+    print(f"handling {tokens}")
+
+    while i < len(tokens) - 1:
+        i += 1
+        token = tokens[i]
+
+        if token in compiler.funcs:  # token is a function (power( ... ))
+            scope = parse.in_scope(tokens[i:], "(", ")")
+
+            # loop for each arg and shunt it to a variable
+            args_split = parse.split_list(scope, ",")
+            send_args: list[str] = []
+            temp: list[str] = []
+
+            for arg in args_split:
+                assert len(arg) >= 1
+
+                print(arg)
+                if len(arg) == 1 and arg[0] in compiler.vars:  # arg is just a variable
+                    send_args.append(arg[0])
+                else:
+                    # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
+                    name = compiler.temp_var()
+                    send_args.append(name)
+                    temp.append(name)
+
+                    urcl += compiler.compile_expr([name, "="] + arg, True)
+
+            urcl += [f"PSH {compiler.vars[x].pointer}" for x in send_args]
+
+            if tokens[2] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1:
+                name = tokens[0]
+            else:
+                name = compiler.temp_var()
+            reg = get_reg()
+
+            urcl += [f"CAL .function_{token}",
+                     f"POP {reg}",
+                     f"STR {compiler.vars[name].pointer} {reg}"]
+
+            result.append(name)
+            free_reg(reg)
+
+            for var in temp: compiler.vars.pop(var) # free all temp variables
+
+            i += len(scope) + 2
+        else:
+            result.append(token)
+
+    print(f"resolved {result}")
+    return result
+
+def evaluate(tokens: list[str], borrow_urcl, auto_allocate = True, pointer = "M0", try_reg = False) -> str:
+    """
+    x - 1 --> RX
+    func(obj1, obj2) --> MX
+    obj3 - y --> Error: not the same type
+    """
+    urcl = []
+    
+    # step 1. handle functions(ok) and in-class methods/variables(todo)
+    to_shunt = pre_evaluate(tokens, urcl)
+
+    # step 2. handle shunting yard
+    # step 3. translate RPN to urcl
+    # step 4. profit
+
+    borrow_urcl += urcl

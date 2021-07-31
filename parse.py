@@ -48,16 +48,16 @@ def parse(tokens: list[str], func = False): # new parse
         if token == ";":
             if expr != [] and len(expr) >= 2:
                 if expr[0] == "function":
-                    compiler.compile_func(expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"])
+                    f = tokens[i-len(expr):]
+                    f = f[:f.index("{") + 1] + in_scope(f[i-len(expr):], "{", "}")  + ["}"]
+                    compiler.compile_func(f)
                     i += len(in_scope(tokens[i-len(expr):], "{", "}"))
 
                 elif expr[0] == "object":
                     error.error("objects arent implemented yet. try again later")
 
                 elif expr[0] == "if":
-                    block = []
-                    #//print(f"if expr: ({expr}); scoped: ({in_scope(tokens[i-len(expr):], '{', '}')})")
-                    block += expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"] # borken??
+                    block = expr + in_scope(tokens[i-len(expr):], "{", "}")  + ["}"]
                     i += len(in_scope(tokens[i-len(expr):], "{", "}"))
 
                     while True: # check for else or elif
