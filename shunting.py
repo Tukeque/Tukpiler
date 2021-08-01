@@ -57,7 +57,7 @@ def shunt(tokens: list[str]) -> list[str]: # returns in RPN
     while len(tokens) != 0:
         token = tokens.pop(0)
 
-        if token.isnumeric() or token in vars:
+        if token.isnumeric() or token in compiler.vars:
             output.append(token)
 
         elif token in unary_functions: # its a function
@@ -235,7 +235,7 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, pointer = "M0", try_
         name = compiler.temp_var()
         pointer = compiler.vars[name].pointer
 
-    urcl += to_urcl(rpn, vars, pointer, ret)
+    urcl += to_urcl(rpn, compiler.vars, pointer, ret)
 
     # step 4. profit
     return pointer # ???

@@ -91,7 +91,7 @@ def resolve(tokens: list[str]) -> list[str]:
         print(f"resolved {to_shunt}")
 
         if do_shunt:
-            urcl += to_urcl(shunt(to_shunt, vars), vars, vars[tokens[0]].pointer)
+            urcl += to_urcl(shunt(to_shunt), vars, vars[tokens[0]].pointer)
 
     return urcl
 
@@ -128,7 +128,7 @@ def compile_expr(tokens: list[str], func = False):
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
-            urcl += to_urcl(shunt(tokens[1:], vars), vars, 0, ret = True)
+            urcl += to_urcl(shunt(tokens[1:]), vars, 0, ret = True)
             urcl.append("RET")
 
     if not func: add_urcl(urcl) # todo make not needed

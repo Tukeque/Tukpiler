@@ -1,6 +1,7 @@
 variables - done
 functions - done
-conditional statements - WIP -> current: making evaluate() function
+evaluate() function - WIP -> current: making
+conditional statements
 recursive functions
 switch statements
 arrays
