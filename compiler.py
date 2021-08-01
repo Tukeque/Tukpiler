@@ -14,6 +14,7 @@ type_to_width = {
 header = [f"BITS == {config.config['bits']}", f"MINHEAP {config.config['ram']}", f"MINREG {config.config['regs']}", f"RUN {config.config['run'].upper()}", f"MINSTACK {config.config['stack']}", "JMP .main"]
 funcrcl = []
 func_name = ""
+func_ret_addr = ""
 urcl = [".main"]
 
 def add_urcl(content: list[str]):
@@ -129,7 +130,8 @@ def compile_expr(tokens: list[str], func = False):
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
             urcl += to_urcl(shunt(tokens[1:]), vars, 0, ret = True)
-            urcl.append("RET")
+            urcl += [f"PSH {func_ret_addr}", "RET"]
+            #//urcl.append("RET")
 
     if not func: add_urcl(urcl) # todo make not needed
 
@@ -140,7 +142,7 @@ def add_funcrcl(urcl: list[str]):
     funcrcl += urcl
 
 def compile_func(tokens: list[str]):
-    global funcrcl, func_name, vars
+    global funcrcl, func_name, func_ret_addr, vars
     print(f"compiling function {tokens}")
     #function add ( num x , num y ) - > num { ... }
 
@@ -154,6 +156,11 @@ def compile_func(tokens: list[str]):
     funcrcl.append(f".function_{name}")
     arg_table: dict[str, str] = {}
 
+    # return adress stack fix
+    return_address = get_reg()
+    funcrcl.append(f"POP {return_address}")
+    func_ret_addr = return_address
+
     # extract arguments' pointers and create/overwrite the variables
     before = copy(vars)
     for arg in args:
@@ -166,11 +173,12 @@ def compile_func(tokens: list[str]):
     parse.parse(tokens[tokens.index("{") + 1:-1], True)
 
     if funcrcl[-1][0:3] != "RET": # add return if it doesnt have one
-        funcrcl += ["PSH 0", "RET"]
+        funcrcl += ["PSH R0", f"PSH {func_ret_addr}", "RET"] # R0 = none
 
-    # return
+    # free & clean up
     for arg in arg_table: free_reg(arg_table[arg])
     vars = before
+    free_reg(return_address)
 
 def compile_cond(tokens: list[str]):
     print(f"condition {tokens}")
