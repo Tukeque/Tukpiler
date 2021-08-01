@@ -49,7 +49,7 @@ def precedence(operator) -> int:
     }[operator]
 
 #* maybe break up into smaller functions?
-def shunt(tokens: list[str], vars: list[str]) -> list[str]: # returns in RPN
+def shunt(tokens: list[str]) -> list[str]: # returns in RPN
     print(f"shunting {tokens}")
     operators: list[str] = []
     output: list[str] = []
@@ -94,8 +94,7 @@ def shunt(tokens: list[str], vars: list[str]) -> list[str]: # returns in RPN
     return output
 
 def handle(urcl: list[str], tempregs: list[str], x: str, vars: dict[str, Var]) -> str: # returns reg or imm
-    if x.isnumeric() or x[0] == "R":
-        return x
+    if x.isnumeric() or x[0] == "R": return x
     else:
         if x not in vars:
             error.error(f"{x} is not in vars")
@@ -218,19 +217,25 @@ def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a l
     print(f"resolved {result}")
     return result
 
-def evaluate(tokens: list[str], borrow_urcl, auto_allocate = True, pointer = "M0", try_reg = False) -> str:
+def evaluate(tokens: list[str], urcl, auto_allocate = True, pointer = "M0", try_reg = False, ret = False) -> str:
     """
-    x - 1 --> RX
-    func(obj1, obj2) --> MX
+    x - 1 --> temp_var/reg \n
+    func(obj1, obj2) --> temp_var \n
     obj3 - y --> Error: not the same type
     """
-    urcl = []
-    
+
     # step 1. handle functions(ok) and in-class methods/variables(todo)
     to_shunt = pre_evaluate(tokens, urcl)
 
     # step 2. handle shunting yard
-    # step 3. translate RPN to urcl
-    # step 4. profit
+    rpn = shunt(to_shunt)
 
-    borrow_urcl += urcl
+    # step 3. translate RPN to urcl
+    if auto_allocate and not try_reg:
+        name = compiler.temp_var()
+        pointer = compiler.vars[name].pointer
+
+    urcl += to_urcl(rpn, vars, pointer, ret)
+
+    # step 4. profit
+    return pointer # ???
