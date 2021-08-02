@@ -49,7 +49,8 @@ def parse(tokens: list[str], func = False): # new parse
             if expr != [] and len(expr) >= 2:
                 if expr[0] == "function":
                     f = tokens[i-len(expr):]
-                    f = f[:f.index("{") + 1] + in_scope(f[i-len(expr):], "{", "}")  + ["}"]
+                    f = f[:f.index("{") + 1] + in_scope(f, "{", "}")  + ["}"]
+
                     compiler.compile_func(f)
                     i += len(in_scope(tokens[i-len(expr):], "{", "}"))
 
