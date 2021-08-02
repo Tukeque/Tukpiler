@@ -5,12 +5,6 @@ from copy import copy
 
 vars: dict[str, Var] = {}
 funcs: dict[str, Func] = {}
-types = ["num", "array", "none"]
-type_to_width = {
-    "num": 1,
-    "array": -1, # width is variable depending on length of array
-    "none": 1
-}
 header = [f"BITS == {config.config['bits']}", f"MINHEAP {config.config['ram']}", f"MINREG {config.config['regs']}", f"RUN {config.config['run'].upper()}", f"MINSTACK {config.config['stack']}", "JMP .main"]
 funcrcl = []
 func_name = ""
@@ -21,14 +15,6 @@ def add_urcl(content: list[str]):
     global urcl
 
     urcl += content
-
-def temp_var(type = "num") -> str:
-    global vars
-
-    name = f"TEMP_VAR_{functions.nextvariableidentifier}"
-    vars[name] = Var(name, type, type_to_width[type])
-
-    return name
 
 # TODO clean vvv
 def resolve(tokens: list[str]) -> list[str]:
@@ -102,7 +88,7 @@ def declare(tokens: list[str]):
     type = tokens[0]
     if type == "num": # declaring a number
         name = tokens[1]
-        vars[name] = Var(name, type, type_to_width[type])
+        vars[name] = Var(name, type, functions.type_to_width[type])
         if len(tokens) > 2:
             compile_expr(tokens[1:])
 
@@ -111,7 +97,7 @@ def declare(tokens: list[str]):
 
     elif type == "none":
         name = tokens[1]
-        vars[name] = Var(name, type, type_to_width[type], True)
+        vars[name] = Var(name, type, functions.type_to_width[type], True)
         print("why would you even want to declare a none?")
 
 def compile_expr(tokens: list[str], func = False):
@@ -121,7 +107,7 @@ def compile_expr(tokens: list[str], func = False):
     if len(tokens) < 2:
         error.error(f"invalid syntax at {tokens}")
 
-    if tokens[0] in types: # declaring a variable
+    if tokens[0] in functions.types: # declaring a variable
         declare(tokens)
 
     if tokens[1] == "=": # set

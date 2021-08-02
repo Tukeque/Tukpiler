@@ -187,7 +187,7 @@ def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a l
                     send_args.append(arg[0])
                 else:
                     # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
-                    name = compiler.temp_var()
+                    name = functions.Var.temp_var()
                     send_args.append(name)
                     temp.append(name)
 
@@ -198,7 +198,7 @@ def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a l
             if tokens[2] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1:
                 name = tokens[0]
             else:
-                name = compiler.temp_var()
+                name = functions.Var.temp_var()
             reg = get_reg()
 
             urcl += [f"CAL .function_{token}",
@@ -217,7 +217,7 @@ def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a l
     print(f"resolved {result}")
     return result
 
-def evaluate(tokens: list[str], urcl, auto_allocate = True, pointer = "M0", try_reg = False, ret = False) -> str:
+def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_reg = False, ret = False) -> str:
     """
     x - 1 --> temp_var/reg \n
     func(obj1, obj2) --> temp_var \n
@@ -231,11 +231,11 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, pointer = "M0", try_
     rpn = shunt(to_shunt)
 
     # step 3. translate RPN to urcl
-    if auto_allocate and not try_reg:
-        name = compiler.temp_var()
-        pointer = compiler.vars[name].pointer
+    if auto_allocate:
+        ret_var = Var.temp_var(reg = try_reg)
+        pointer = compiler.vars[ret_var].pointer
 
-    urcl += to_urcl(rpn, compiler.vars, pointer, ret)
+    urcl += to_urcl(rpn, compiler.vars, pointer, ret) # todo change to_urcl to use variable and not pointer
 
     # step 4. profit
-    return pointer # ???
+    return ret_var

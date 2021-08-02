@@ -1,4 +1,4 @@
-import error, config
+import error, config, compiler
 
 nextvariableidentifier = 0
 freepointers: list[int] = range(config.config["ram"])[1:]
@@ -7,6 +7,11 @@ maxvariables = 64
 maxregs = config.config["regs"]
 usednames: list[str] = ["+", "//", "*", "^", "&", "|", "-", "num", "function", "object", "=", "==", ">=", "<=", "!=", ">", "<", "none", "array", "->", "{", "}", "\"", "[", "]", ",", "(", ")", "$", ".", ";", "%", "[", "]", "if", "else", "elif", "while", "switch"]
 types = ["num", "none", "array"]
+type_to_width = {
+    "num": 1,
+    "array": -1, # width is variable depending on length of array
+    "none": 1
+}
 
 def get_variable_free_pointer(width: int) -> int:
     global usedvariablepointers
@@ -32,7 +37,7 @@ def get_variable_identifier() -> int:
     return nextvariableidentifier
 
 class Var:
-    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = ""):
+    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = ""): # todo reg variables
         self.name = name
         self.type = type
         self.width = width
@@ -44,6 +49,12 @@ class Var:
             self.pointer = reg
         else:
             self.pointer = 0
+
+    @staticmethod
+    def temp_var(type = "num", reg = False) -> str:
+        name = f"TEMP_VAR_{nextvariableidentifier}"
+        compiler.vars[name] = Var(name, type, type_to_width[type], reg = reg)
+        return name
 
     def print(self):
         print(f"{self.type} variable at address {self.pointer}, with {self.width} and identifier {self.identifier}")
