@@ -1,6 +1,6 @@
 import error, config, parse, functions
 from functions import Func, Var, free_reg, get_reg
-from shunting import shunt, to_urcl
+from shunting import shunt, to_urcl, evaluate
 from copy import copy
 
 vars: dict[str, Var] = {}
@@ -13,74 +13,11 @@ urcl = [".main"]
 
 def add_urcl(content: list[str]):
     global urcl
-
     urcl += content
 
-# TODO clean vvv
-def resolve(tokens: list[str]) -> list[str]:
-    urcl = []
-
-    if vars[tokens[0]].type == "num":
-        to_shunt = []
-        i = -1
-        do_shunt = True
-        print(f"resolving {tokens[2:]}")
-        while i < len(tokens[2:]) - 1:
-            i += 1
-            token = tokens[2:][i]
-
-            if token in funcs: # token is a function (power( ... ))
-                scope = parse.in_scope(tokens[2:][i:], "(", ")")
-
-                # loop for each arg and shunt it to a variable
-                args_split = [x.removeprefix(" ").removesuffix(" ").split(" ") for x in " ".join(scope).split(",")]
-                send_args: list[str] = []
-                temp: list[str] = []
-
-                for arg in args_split:
-                    assert len(arg) >= 1
-
-                    if len(arg) == 1 and arg[0] in vars: # arg is just a variable
-                        send_args.append(arg[0])
-                    else:
-                        name = f"TEMP_VAR_{functions.nextvariableidentifier}" # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
-                        vars[name] = Var(name, "num", 1) #! ^
-                        send_args.append(name)
-                        temp.append(name)
-
-                        urcl += resolve([name, "="] + arg)
-
-                urcl += [f"PSH {vars[x].pointer}" for x in send_args]
-
-                
-                if tokens[2] in funcs and tokens[4:-1] == parse.in_scope(tokens, "(", ")"):
-                    name = tokens[0]
-                    do_shunt = False
-                else:
-                    name = f"TEMP_VAR_{functions.nextvariableidentifier}"
-                    vars[name] = Var(name, "num", 1)
-                reg = get_reg()
-
-                urcl += [f"CAL .function_{token}",
-                         f"POP {reg}",
-                         f"STR {vars[name].pointer} {reg}"]
-
-                to_shunt.append(name)
-                free_reg(reg)
-
-                for var in temp:
-                    vars.pop(var)
-
-                i += len(scope) + 2
-            else:
-                to_shunt.append(token)
-
-        print(f"resolved {to_shunt}")
-
-        if do_shunt:
-            urcl += to_urcl(shunt(to_shunt), vars, vars[tokens[0]].pointer)
-
-    return urcl
+def add_funcrcl(urcl: list[str]):
+    global funcrcl
+    funcrcl += urcl
 
 def declare(tokens: list[str]):
     global vars
@@ -111,21 +48,17 @@ def compile_expr(tokens: list[str], func = False):
         declare(tokens)
 
     if tokens[1] == "=": # set
-        urcl += resolve(tokens)
+        #//urcl += resolve(tokens)
+        evaluate(tokens[2:], urcl, auto_allocate=False, ret_var=tokens[0])
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
             urcl += to_urcl(shunt(tokens[1:]), vars, 0, ret = True)
             urcl += [f"PSH {func_ret_addr}", "RET"]
-            #//urcl.append("RET")
 
-    if not func: add_urcl(urcl) # todo make not needed
+    if not func: add_urcl(urcl) # todo make not needed(pass as args)
 
     return urcl
-
-def add_funcrcl(urcl: list[str]):
-    global funcrcl
-    funcrcl += urcl
 
 def compile_func(tokens: list[str]):
     global funcrcl, func_name, func_ret_addr, vars
@@ -168,5 +101,6 @@ def compile_func(tokens: list[str]):
 
 def compile_cond(tokens: list[str]):
     print(f"condition {tokens}")
+    # TODO
 
 # compile_obj when

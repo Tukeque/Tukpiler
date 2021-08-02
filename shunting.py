@@ -233,9 +233,11 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     # step 3. translate RPN to urcl
     if auto_allocate:
         ret_var = Var.temp_var(reg = try_reg)
-        pointer = compiler.vars[ret_var].pointer
+    pointer = compiler.vars[ret_var].pointer
 
     urcl += to_urcl(rpn, compiler.vars, pointer, ret) # todo change to_urcl to use variable and not pointer
+
+    # TODO fix function returning unoptimization
 
     # step 4. profit
     return ret_var
