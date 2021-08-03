@@ -1,9 +1,12 @@
 variables - done
 functions - done
-evaluate() function - WIP -> current: making
+evaluate() function - done
+rework for consistency - WIP
 conditional statements
 recursive functions
+libraries
 switch statements
 arrays
+linked lists
 dictionaries
 classes
