@@ -1,6 +1,6 @@
 import parse, lexer, error, compiler, sys
 
-print("Tukeque's Programman 2021")
+print("Tukeque's Programman 2021\n")
 
 if len(sys.argv) == 3:
     path = sys.argv[1]
@@ -20,11 +20,11 @@ print(tokens)
 parse.parse(tokens)
 
 if len(error.errors) == 0:
-    print(f"done! result saved in {result_name}")
+    print(f"\ndone! result saved in {result_name}:\n")
 
     with open(result_name, "w") as f:
         f.write("\n".join(compiler.header + compiler.funcrcl + compiler.urcl))
 
-    print(compiler.urcl)
+    print("\n".join(compiler.header + compiler.funcrcl + compiler.urcl))
 else:
     print(f"encountered errors: \n{error.errors}")
