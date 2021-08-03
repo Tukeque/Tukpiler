@@ -48,7 +48,6 @@ def precedence(operator) -> int:
         "!": 6
     }[operator]
 
-#? maybe break up into smaller functions?
 def shunt(tokens: list[str]) -> list[str]: # returns in RPN
     print(f"shunting {tokens}")
     operators: list[str] = []
@@ -93,27 +92,27 @@ def shunt(tokens: list[str]) -> list[str]: # returns in RPN
 
     return output
 
-def handle(urcl: list[str], tempregs: list[str], x: str, vars: dict[str, Var]) -> str: # returns reg or imm
+def handle(urcl: list[str], tempregs: list[str], x: str) -> str: # returns reg or imm
     if x.isnumeric() or x[0] == "R": return x
     else:
-        if x not in vars:
+        if x not in compiler.vars:
             error.error(f"{x} is not in vars")
         else:
             tempregs.append(get_reg())
-            urcl.append(f"LOD {tempregs[-1]} {vars[x].pointer}")
+            urcl.append(f"LOD {tempregs[-1]} {compiler.vars[x].pointer}")
             return tempregs[-1]
 
 def trash_operand(operand):
     if operand[0] == "R": free_reg(operand)
 
-def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str], vars):
+def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
     a, b = operands[-2], operands[-1]
     operands.pop(); operands.pop()
 
     handletemps = []
     tempregs.append(get_reg()) 
     result_reg = tempregs[-1]
-    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a, vars)} {handle(urcl, handletemps, b, vars)}")
+    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a)} {handle(urcl, handletemps, b)}")
 
     for reg in handletemps:
         free_reg(reg)
@@ -121,21 +120,21 @@ def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: 
     operands.append(result_reg)
     trash_operand(a); trash_operand(b)
 
-def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -> list[str]:
-    if shunt == []: return []
+def to_urcl(rpn: list[str], ret_var: str, ret = False) -> list[str]:
+    if rpn == []: return []
     operands = []
     tempregs = []
     urcl = []
 
-    for token in shunt:
-        if token.isnumeric() or token in vars or token[0] == "R":
+    for token in rpn:
+        if token.isnumeric() or token in compiler.vars or token[0] == "R":
             operands.append(token)
         elif token in operator_list:
             assert len(operands) >= 2
 
             if not(operands[-1].isnumeric() and operands[-2].isnumeric()):
                 if token != "**":
-                    handle_operator(token, operands, tempregs, urcl, vars)
+                    handle_operator(token, operands, tempregs, urcl)
                 else:
                     error.error("powers are unsupported for now, try again later")
                     
@@ -145,13 +144,13 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
                 exec(f"operands.append(str(int(int(a) {token} int(b))))")
 
     if not ret:
-        if operands[-1] in vars:
+        if operands[-1] in compiler.vars:
             reg = get_reg()
-            urcl += [f"LOD {reg} {vars[operands[-1]].pointer}",
-                     f"STR {pointer} {reg}"]
+            urcl += [f"LOD {reg} {compiler.vars[operands[-1]].pointer}",
+                     f"STR {compiler.vars[ret_var].pointer} {reg}"]
             free_reg(reg)
         else:
-            urcl.append(f"STR {pointer} {operands[-1]}")
+            urcl.append(f"STR {compiler.vars[ret_var].pointer} {operands[-1]}")
     else:
         urcl.append(f"PSH {operands[-1]}")
 
@@ -244,9 +243,8 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     # step 3. translate RPN to urcl
     if auto_allocate:
         ret_var = Var.temp_var(reg = try_reg)
-    pointer = compiler.vars[ret_var].pointer
 
-    urcl += to_urcl(rpn, compiler.vars, pointer, ret) # todo change to_urcl to use variable and not pointer
+    urcl += to_urcl(rpn, ret_var, ret) # todo change to_urcl to use variable and not pointer
 
     # step 4. profit
     return ret_var

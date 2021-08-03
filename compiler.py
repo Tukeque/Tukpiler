@@ -19,7 +19,7 @@ def add_funcrcl(urcl: list[str]):
     global funcrcl
     funcrcl += urcl
 
-def declare(tokens: list[str]):
+def declare(tokens: list[str], urcl: list[str]):
     global vars
 
     type = tokens[0]
@@ -27,7 +27,7 @@ def declare(tokens: list[str]):
         name = tokens[1]
         vars[name] = Var(name, type, functions.type_to_width[type])
         if len(tokens) > 2:
-            compile_expr(tokens[1:])
+            compile_expr(tokens[1:], urcl)
 
     elif type == "array":
         error.error("array not implemented yet")
@@ -37,30 +37,24 @@ def declare(tokens: list[str]):
         vars[name] = Var(name, type, functions.type_to_width[type], True)
         print("why would you even want to declare a none?")
 
-def compile_expr(tokens: list[str], func = False):
+def compile_expr(tokens: list[str], urcl: list[str]):
     print(f"compiling expression {tokens}")
-    urcl = []
     
     if len(tokens) < 2:
         error.error(f"invalid syntax at {tokens}")
 
     if tokens[0] in functions.types: # declaring a variable
-        declare(tokens)
+        declare(tokens, urcl)
 
     if tokens[1] == "=": # set
-        #//urcl += resolve(tokens)
         evaluate(tokens[2:], urcl, auto_allocate=False, ret_var=tokens[0])
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
-            urcl += to_urcl(shunt(tokens[1:]), vars, 0, ret = True)
+            urcl += to_urcl(shunt(tokens[1:]), "", ret = True)
             urcl += [f"PSH {func_ret_addr}", "RET"]
 
-    if not func: add_urcl(urcl) # todo make not needed(pass as args)
-
-    return urcl
-
-def compile_func(tokens: list[str]):
+def compile_func(tokens: list[str]): # maybe clean up
     global funcrcl, func_name, func_ret_addr, vars
     print(f"compiling function {tokens}")
     #function add ( num x , num y ) - > num { ... }

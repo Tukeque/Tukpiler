@@ -1,8 +1,8 @@
 variables - done
 functions - done
 evaluate() function - done
-rework for consistency - WIP
-conditional statements
+rework for consistency - done
+conditional statements - WIP
 recursive functions
 libraries
 switch statements

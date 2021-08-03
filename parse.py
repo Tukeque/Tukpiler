@@ -74,9 +74,9 @@ def parse(tokens: list[str], func = False): # new parse
 
                 elif is_expr(expr):
                     if not func:
-                        compiler.compile_expr(expr)
+                        compiler.compile_expr(expr, compiler.urcl)
                     else:
-                        compiler.add_funcrcl(compiler.compile_expr(expr, True))
+                        compiler.compile_expr(expr, compiler.funcrcl)
 
             expr = []
         else:
