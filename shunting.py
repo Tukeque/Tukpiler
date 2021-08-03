@@ -2,7 +2,7 @@ import compiler, parse, functions
 from functions import Var, get_reg, free_reg
 import error
 
-# operators: + - / * % | & ^
+#* shunting yard *#
 operator_list = ["+", "-", "*", "/", "%", "|", "&", "^", "**"]
 operator_to_urcl = {
     "+": "ADD",
@@ -48,7 +48,7 @@ def precedence(operator) -> int:
         "!": 6
     }[operator]
 
-#* maybe break up into smaller functions?
+#? maybe break up into smaller functions?
 def shunt(tokens: list[str]) -> list[str]: # returns in RPN
     print(f"shunting {tokens}")
     operators: list[str] = []
@@ -108,7 +108,6 @@ def trash_operand(operand):
 
 def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str], vars):
     a, b = operands[-2], operands[-1]
-    #trash_operand(operands.pop()); trash_operand(operands.pop())
     operands.pop(); operands.pop()
 
     handletemps = []
@@ -162,7 +161,51 @@ def to_urcl(shunt: list[str], vars: dict[str, Var], pointer: int, ret = False) -
 
     return urcl
 
-def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a list of new shunt args with functions handled
+#* evaluate *#
+def call_function(tokens: list[str], urcl: list[str], send_args: list[str], func_name: str, ret_var: str) -> list[str]: # returns urcl
+    urcl += [f"PSH {compiler.vars[x].pointer}" for x in send_args]
+
+    if tokens[0] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1: # only a function
+        name = ret_var
+    else:
+        name = functions.Var.temp_var()
+    reg = get_reg()
+
+    urcl += [
+                f"CAL .function_{func_name}",
+                f"POP {reg}",
+                f"STR {compiler.vars[name].pointer} {reg}"
+            ]
+
+    free_reg(reg)
+    return name
+
+def resolve_function(tokens: list[str], i: int, urcl: list[str], ret_var: str) -> str:
+    scope = parse.in_scope(tokens[i:], "(", ")")
+
+    # loop for each arg and evaluate it to a variable
+    args_split = parse.split_list(scope, ",")
+    send_args = []
+    temp = []
+
+    for arg in args_split:
+        assert len(arg) >= 1
+
+        print(arg)
+        if arg[0] in compiler.vars: # arg is just a variable
+            send_args.append(arg[0]) # pass as reference
+        else:
+            name = evaluate(arg, urcl, try_reg=False)
+            send_args.append(name)
+            temp     .append(name)
+
+    name = call_function(tokens, urcl, send_args, tokens[i], ret_var)
+    for var in temp: compiler.vars.pop(var) # free all temp variables
+
+    i += len(scope) + 2
+    return name
+
+def resolve(tokens: list[str], urcl: list[str], ret_var: str = "") -> list[str]: # returns a list of new shunt args with functions handled
     result = []
     i = -1
     print(f"handling {tokens}")
@@ -171,46 +214,8 @@ def pre_evaluate(tokens: list[str], urcl: list[str]) -> list[str]: # returns a l
         i += 1
         token = tokens[i]
 
-        if token in compiler.funcs:  # token is a function (power( ... ))
-            scope = parse.in_scope(tokens[i:], "(", ")")
-
-            # loop for each arg and shunt it to a variable
-            args_split = parse.split_list(scope, ",")
-            send_args: list[str] = []
-            temp: list[str] = []
-
-            for arg in args_split:
-                assert len(arg) >= 1
-
-                print(arg)
-                if len(arg) == 1 and arg[0] in compiler.vars:  # arg is just a variable
-                    send_args.append(arg[0])
-                else:
-                    # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
-                    name = functions.Var.temp_var()
-                    send_args.append(name)
-                    temp.append(name)
-
-                    urcl += compiler.compile_expr([name, "="] + arg, True)
-
-            urcl += [f"PSH {compiler.vars[x].pointer}" for x in send_args]
-
-            if tokens[2] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1:
-                name = tokens[0]
-            else:
-                name = functions.Var.temp_var()
-            reg = get_reg()
-
-            urcl += [f"CAL .function_{token}",
-                     f"POP {reg}",
-                     f"STR {compiler.vars[name].pointer} {reg}"]
-
-            result.append(name)
-            free_reg(reg)
-
-            for var in temp: compiler.vars.pop(var) # free all temp variables
-
-            i += len(scope) + 2
+        if token in compiler.funcs: # token is a function
+            result.append(resolve_function(tokens, i, urcl, ret_var))
         else:
             result.append(token)
 
@@ -225,10 +230,16 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     """
 
     # step 1. handle functions(ok) and in-class methods/variables(todo)
-    to_shunt = pre_evaluate(tokens, urcl)
+    if auto_allocate:
+        to_shunt = resolve(tokens, urcl)
+    else:
+        to_shunt = resolve(tokens, urcl, ret_var)
+
+        if tokens[0] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1: # only a function
+            return ret_var
 
     # step 2. handle shunting yard
-    rpn = shunt(to_shunt)
+    rpn = shunt(to_shunt) # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
 
     # step 3. translate RPN to urcl
     if auto_allocate:
@@ -236,8 +247,6 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     pointer = compiler.vars[ret_var].pointer
 
     urcl += to_urcl(rpn, compiler.vars, pointer, ret) # todo change to_urcl to use variable and not pointer
-
-    # TODO fix function returning unoptimization
 
     # step 4. profit
     return ret_var
