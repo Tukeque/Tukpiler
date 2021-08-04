@@ -1,6 +1,6 @@
 import error, config, parse, functions
 from functions import Func, Var, free_reg, get_reg
-from shunting import shunt, to_urcl, evaluate
+from shunting import evaluate
 from copy import copy
 
 vars: dict[str, Var] = {}
@@ -61,7 +61,8 @@ def compile_expr(tokens: list[str], urcl: list[str]):
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
-            urcl += to_urcl(shunt(tokens[1:]), "", ret = True)
+            #//urcl += to_urcl(shunt(tokens[1:]), "", ret = True)
+            evaluate(tokens[1:], urcl, ret=True)
             urcl += [f"PSH {func_ret_addr}", "RET"]
 
 def compile_func(tokens: list[str]): # maybe clean up

@@ -153,6 +153,7 @@ def to_urcl(rpn: list[str], ret_var: str, ret = False) -> list[str]:
             urcl.append(f"STR {compiler.vars[ret_var].pointer} {operands[-1]}")
     else:
         urcl.append(f"PSH {operands[-1]}")
+        print("return")
 
     for op in operands:
         if op[0] == "R":
@@ -223,7 +224,13 @@ def resolve(tokens: list[str], urcl: list[str], ret_var: str = "") -> list[str]:
 
 def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_reg = False, ret = False) -> str:
     if len(tokens) == 1 and tokens[0] in compiler.vars:
-        return tokens[0]
+        if ret:
+            reg = compiler.vars[tokens[0]].get(urcl)
+            urcl.append(f"PSH {reg}")
+            free_reg(reg)
+            return tokens[0]
+        else:
+            return tokens[0]
     if tokens == []:
         return Var(f"NULL_{functions.nextvariableidentifier}", "none", 1, at_zero=True)
 
@@ -240,7 +247,7 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     rpn = shunt(to_shunt) # how to get type? # todo future get_type() function that evaluates an expression only to get the type that it returns or an exception?
 
     # step 3. translate RPN to urcl
-    if auto_allocate:
+    if auto_allocate and not ret:
         ret_var = Var.temp_var(reg = try_reg)
 
     urcl += to_urcl(rpn, ret_var, ret) # todo change to_urcl to use variable and not pointer
