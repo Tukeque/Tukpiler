@@ -2,9 +2,11 @@ variables - done
 functions - done
 evaluate() function - done
 rework for consistency - done
-conditional statements - WIP
+conditional statements - done
 recursive functions
+register variables
 libraries
+booleans?
 switch statements
 arrays
 linked lists
