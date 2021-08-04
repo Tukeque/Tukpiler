@@ -119,11 +119,7 @@ def find_comparator(tokens: list[str]):
     if comp_count == 1:
         return i
 
-def compile_cond(tokens: list[str], urcl: list[str], func: False):
-    global cond_identifier
-    print(f"condition {tokens}")
-    
-    # step 1. evaluate condition
+def evaluate_condition(tokens, urcl):
     end = tokens.index("{")
     comp_index = find_comparator(tokens[:end])
 
@@ -148,8 +144,16 @@ def compile_cond(tokens: list[str], urcl: list[str], func: False):
     else:
         error.error("trying to compare two variables with different types")
 
+    vars.pop(a); vars.pop(b)
+
+def compile_cond(tokens: list[str], urcl: list[str], func: False):
+    global cond_identifier
+    print(f"condition {tokens}")
+    
+    # step 1. evaluate condition
+    evaluate_condition(tokens, urcl)
+
     # step 2. compile outcomes
-    incremented = False
     if_scope = tokens[tokens.index("{") + 1:tokens.index("}")]
     parse.parse(if_scope, func)
     urcl.append(f".end_{cond_identifier}")
@@ -159,14 +163,12 @@ def compile_cond(tokens: list[str], urcl: list[str], func: False):
             else_scope = tokens[tokens.index("}") + 3:-1]
             parse.parse(else_scope, func)
         elif tokens[tokens.index("}") + 1] == "elif":
-            rest_scope = tokens[tokens.index("}") + 1:]
-            rest_scope[0] = "if"
+            rest_scope = ["if"] + tokens[tokens.index("}") + 2:]
 
             cond_identifier += 1
-            incremented = True
             compile_cond(rest_scope, urcl, func)
+            return
 
-    if not incremented:
-        cond_identifier += 1
+    cond_identifier += 1
 
 # compile_obj when
