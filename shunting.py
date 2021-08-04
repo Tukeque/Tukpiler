@@ -222,12 +222,6 @@ def resolve(tokens: list[str], urcl: list[str], ret_var: str = "") -> list[str]:
     return result
 
 def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_reg = False, ret = False) -> str:
-    """
-    x - 1 --> temp_var/reg \n
-    func(obj1, obj2) --> temp_var \n
-    obj3 - y --> Error: not the same type
-    """
-
     if len(tokens) == 1 and tokens[0] in compiler.vars:
         return tokens[0]
     if tokens == []:
