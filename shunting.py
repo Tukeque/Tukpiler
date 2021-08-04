@@ -153,7 +153,6 @@ def to_urcl(rpn: list[str], ret_var: str, ret = False) -> list[str]:
             urcl.append(f"STR {compiler.vars[ret_var].pointer} {operands[-1]}")
     else:
         urcl.append(f"PSH {operands[-1]}")
-        print("return")
 
     for op in operands:
         if op[0] == "R":
