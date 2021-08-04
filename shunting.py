@@ -228,6 +228,11 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     obj3 - y --> Error: not the same type
     """
 
+    if len(tokens) == 1 and tokens[0] in compiler.vars:
+        return tokens[0]
+    if tokens == []:
+        return Var(f"NULL_{functions.nextvariableidentifier}", "none", 1, at_zero=True)
+
     # step 1. handle functions(ok) and in-class methods/variables(todo)
     if auto_allocate:
         to_shunt = resolve(tokens, urcl)
