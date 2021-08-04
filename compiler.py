@@ -11,6 +11,16 @@ func_name = ""
 func_ret_addr = ""
 urcl = [".main"]
 
+cond_identifier = 0
+cond_to_urcl_inverse = {
+    ">=": "BRL", # BGE
+    "<=": "BRG", # BLE
+    ">": "BLE", # BRG
+    "<": "BGE", # BRL
+    "==": "BNE", # BEQ
+    "!=": "BRE" # BNQ
+}
+
 def add_urcl(content: list[str]):
     global urcl
     urcl += content
@@ -93,8 +103,70 @@ def compile_func(tokens: list[str]): # maybe clean up
     vars = before
     free_reg(return_address)
 
-def compile_cond(tokens: list[str]):
+def find_comparator(tokens: list[str]):
+    comparators = [">=", "<=", "==", "!=", ">", "<"]
+    comp_count = 0
+    i = -1
+
+    for comparator in comparators:
+        if tokens.count(comparator) >= 1:
+            comp_count += tokens.count(comparator)
+
+            i = tokens.index(comparator)
+
+    if comp_count == 0: error.error("no comparator found in conditional statement")
+    if comp_count > 1: error.error("too many comparators in conditional statement(will be fixed later)") # todo fix later
+    if comp_count == 1:
+        return i
+
+def compile_cond(tokens: list[str], urcl: list[str], func: False):
+    global cond_identifier
     print(f"condition {tokens}")
-    # TODO
+    
+    # step 1. evaluate condition
+    end = tokens.index("{")
+    comp_index = find_comparator(tokens[:end])
+
+    comparator = tokens[comp_index]
+    a = evaluate(tokens[1:comp_index], urcl)
+    b = evaluate(tokens[comp_index + 1:end], urcl)
+
+    if vars[a].type == vars[b].type:
+        type = vars[a].type
+
+        if type == "num":
+            urcl.append(f"{cond_to_urcl_inverse[comparator]} .end_{cond_identifier} {vars[a].get(urcl)} {vars[b].get(urcl)}")
+
+        elif type == "none":
+            error.error("why are you trying to compare nones") #wtf am i suposed to do? compare nulls?
+
+        else: # class
+            if comparator in [">=", "<=", ">", "<"]:
+                error.error("cant compare classes with numerical comparations")    
+            else:
+                error.error("class comparison not implemented yet") # TODO
+    else:
+        error.error("trying to compare two variables with different types")
+
+    # step 2. compile outcomes
+    incremented = False
+    if_scope = tokens[tokens.index("{") + 1:tokens.index("}")]
+    parse.parse(if_scope, func)
+    urcl.append(f".end_{cond_identifier}")
+
+    if len(tokens) > len(tokens[:tokens.index("{") + 1]) + len(if_scope) + 1: # theres more
+        if tokens[tokens.index("}") + 1] == "else":
+            else_scope = tokens[tokens.index("}") + 3:-1]
+            parse.parse(else_scope, func)
+        elif tokens[tokens.index("}") + 1] == "elif":
+            rest_scope = tokens[tokens.index("}") + 1:]
+            rest_scope[0] = "if"
+
+            cond_identifier += 1
+            incremented = True
+            compile_cond(rest_scope, urcl, func)
+
+    if not incremented:
+        cond_identifier += 1
 
 # compile_obj when

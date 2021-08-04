@@ -37,7 +37,7 @@ def get_variable_identifier() -> int:
     return nextvariableidentifier
 
 class Var:
-    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = ""): # todo reg variables
+    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = "", in_reg: bool = False): # todo reg variables
         self.name = name
         self.type = type
         self.width = width
@@ -47,8 +47,20 @@ class Var:
             self.pointer = f"{'M' if config.config['modfix'] == True else '#'}{get_variable_free_pointer(width)}"
         elif argument == True:
             self.pointer = reg
+        elif in_reg == True:
+            self.pointer = get_reg()
         else:
             self.pointer = 0
+
+        self.in_reg = in_reg
+
+    def get(self, urcl: list[str]) -> str:
+        if not self.in_reg:
+            reg = get_reg()
+            urcl.append(f"LOD {reg} {self.pointer}")
+            return reg
+        else:
+            return self.pointer
 
     @staticmethod
     def temp_var(type = "num", reg = False) -> str:
