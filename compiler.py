@@ -147,11 +147,6 @@ def evaluate_condition(tokens, urcl):
 
     vars.pop(a); vars.pop(b)
 
-def if_header() -> list[str]:
-    return [
-
-    ]
-
 def compile_cond(tokens: list[str], urcl: list[str], func: False):
     global cond_identifier
     print(f"condition {tokens}")
