@@ -147,6 +147,11 @@ def evaluate_condition(tokens, urcl):
 
     vars.pop(a); vars.pop(b)
 
+def if_header() -> list[str]:
+    return [
+
+    ]
+
 def compile_cond(tokens: list[str], urcl: list[str], func: False):
     global cond_identifier
     print(f"condition {tokens}")
@@ -157,18 +162,31 @@ def compile_cond(tokens: list[str], urcl: list[str], func: False):
     # step 2. compile outcomes
     if_scope = tokens[tokens.index("{") + 1:tokens.index("}")]
     parse.parse(if_scope, func)
-    urcl.append(f".end_{cond_identifier}")
-
+    cid = cond_identifier
+    
     if len(tokens) > len(tokens[:tokens.index("{") + 1]) + len(if_scope) + 1: # theres more
         if tokens[tokens.index("}") + 1] == "else":
+            urcl += [
+                f"JMP .after_{cid}",
+                f".end_{cid}"
+            ]
+
             else_scope = tokens[tokens.index("}") + 3:-1]
             parse.parse(else_scope, func)
+            urcl.append(f".after_{cid}")
+
         elif tokens[tokens.index("}") + 1] == "elif":
             rest_scope = ["if"] + tokens[tokens.index("}") + 2:]
+            urcl += [
+                f"JMP .after_{cid}",
+                f".end_{cid}"
+            ]
 
             cond_identifier += 1
             compile_cond(rest_scope, urcl, func)
-            return
+            urcl.append(f".after_{cid}")
+    else:
+        urcl.append(f".end_{cid}")
 
     cond_identifier += 1
 

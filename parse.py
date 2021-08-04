@@ -62,8 +62,9 @@ def parse(tokens: list[str], func = False): # new parse
                     i += len(in_scope(tokens[i-len(expr):], "{", "}"))
 
                     while True: # check for else or elif
-                        if tokens[i + 1] == "else" or tokens[i + 1] == "elif":
-                            mini_block = in_scope(tokens[i + 1:], "{", "}") + ["}"]
+                        rest = tokens[i + 1:]
+                        if rest[0] == "else" or rest[0] == "elif":
+                            mini_block = rest[:rest.index("{")] + in_scope(rest, "{", "}") + ["}"]
                             block += mini_block
 
                             i += len(mini_block)
