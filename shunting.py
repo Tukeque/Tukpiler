@@ -191,7 +191,7 @@ def resolve_function(tokens: list[str], i: int, urcl: list[str], ret_var: str) -
         assert len(arg) >= 1
 
         print(arg)
-        if arg[0] in compiler.vars: # arg is just a variable
+        if len(arg) == 1 and arg[0] in compiler.vars: # arg is just a variable
             send_args.append(arg[0]) # pass as reference
         else:
             name = evaluate(arg, urcl, try_reg=False)
