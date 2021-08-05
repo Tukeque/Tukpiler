@@ -37,7 +37,7 @@ def get_variable_identifier() -> int:
     return nextvariableidentifier
 
 class Var:
-    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = "", in_reg: bool = False): # todo reg variables
+    def __init__(self, name: str, type: str, width: int, at_zero = False, argument = False, reg: str = "", in_reg: bool = False):
         self.name = name
         self.type = type
         self.width = width
@@ -61,6 +61,28 @@ class Var:
             return reg
         else:
             return self.pointer
+
+    def set(self, x, urcl: list[str]):
+        if x == self.name: return
+        x_var = compiler.vars[x]
+
+        op = ""
+        if x_var.in_reg and self.in_reg: # both in reg
+            op = "MOV"
+        elif x_var.in_reg and not self.in_reg: # ram <- reg
+            op = "STR"
+        elif not x_var.in_reg and self.in_reg: # reg <- ram
+            op = "LOD"
+        elif not x_var.in_reg and not self.in_reg: # ram <- ram
+            reg = get_reg()
+            urcl.append([
+                f"LOD {reg} {x_var.pointer}",
+                f"STR {self.pointer} {reg}"
+            ])
+            free_reg(reg)
+            return
+
+        urcl.append(f"{op} {x_var.pointer} {self.pointer}")
 
     @staticmethod
     def temp_var(type = "num", reg = False) -> str:
