@@ -87,16 +87,6 @@ class Var:
     def print(self):
         print(f"{self.type} variable at address {self.pointer}, with {self.width} and identifier {self.identifier}")
 
-usedregs = [0] # reg 0 doesn't count
-def get_reg() -> str:
-    for i in range(maxregs):
-        if i not in usedregs:
-            usedregs.append(i)
-            return f"R{i}"
-
-def free_reg(reg: str):
-    usedregs.remove(int(reg[1:]))
-
 nextfuncidentifier = 0
 func_names: list[str] = []
 def get_function_identifier() -> int:
@@ -120,3 +110,77 @@ class Func():
 
     def print(self):
         print(f"function {self.name} with identifier {self.identifier}, args {self.args} and return type {self.return_type}")
+
+archived_handles: dict[int, bool] = {}
+handle_to_reg: dict[int, str] = {} # has priority over archived_handles
+handle_use = []
+
+usedregs = [0] # reg 0 doesn't count
+def get_reg() -> str:
+    for i in range(maxregs):
+        if i not in usedregs:
+            usedregs.append(i)
+
+            return f"R{i}"
+    error.error("how did we get here?")
+
+def free_reg(reg: str):
+    usedregs.remove(int(reg[1:]))
+
+def has_free_space() -> bool:
+    for i in range(config.config["regs"]):
+        if i not in usedregs:
+            return True
+    return False
+
+def archive_reg(handle: int, urcl: list[str]):
+    global archived_handles, handle_use
+
+    name = f"archived_{handle}"
+    compiler.vars[name] = Var(name, "num", 1)
+    chamber = compiler.vars[name]
+    handle_use.remove(handle) # remove because archived
+
+    # store to variable
+    urcl.append(f"STR {chamber.pointer} {handle_to_reg[handle]}")
+    archived_handles[handle] = True
+
+def update_use(handle: int):
+    global handle_use
+
+    if handle_use.count(handle) == 0: # this register has never been used
+        handle_use.insert(0, handle)
+    else: # it already contains
+        handle_use.remove(handle)
+        handle_use.insert(0, handle)
+
+def handle_reg(handle: int, urcl: list[str]) -> str: # returns reg and alters urcl
+    global archived_handles, handle_to_reg
+
+    update_use(handle)
+
+    if archived_handles[handle] == True: # register is archived
+        # unarchive
+        if has_free_space(): # free space to use
+            reg = get_reg()
+
+            urcl.append(f"LOD {reg} {compiler.vars[f'archive_{handle}']}")
+            handle_to_reg[handle] = reg
+
+        else: # no free space, must archive another register
+            #1. archive last used register
+            last_handle = handle_use[-1]
+            last_reg = handle_to_reg[last_handle]
+            archive_reg(last_handle, urcl)
+
+            #2. unarchive where he was
+            name = f'archive_{handle}'
+            urcl.append(f"LOD {last_reg} {compiler.vars[name]}")
+            handle_to_reg[handle] = last_reg
+            compiler.vars.pop(name)
+
+        archived_handles[handle] = False
+        return reg
+
+    else: # register is available and in register form
+        return handle_to_reg[handle]
