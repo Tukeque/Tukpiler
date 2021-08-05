@@ -33,6 +33,9 @@ def declare(tokens: list[str], urcl: list[str]):
     global vars
 
     type = tokens[0]
+    if type != "none" and type != "num" and config.config["complex"] == True:
+        error.error("trying to declare a non-num variable in non-complex mode")
+
     if type == "num": # declaring a number
         name = tokens[1]
         vars[name] = Var(name, type, functions.type_to_width[type])
