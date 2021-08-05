@@ -1,6 +1,6 @@
 import parse, lexer, error, compiler, sys
 
-print("Tukeque's Programman 2021\n")
+print("Tukeque's Tukpiler 2021\n")
 
 if len(sys.argv) == 3:
     path = sys.argv[1]
