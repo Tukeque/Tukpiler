@@ -4,5 +4,6 @@ config = {
     "ram": 512,
     "stack": 256,
     "run": "ram",
-    "modfix": True
+    "modfix": True,
+    "complex": False
 }
