@@ -67,20 +67,14 @@ class Var:
         x_var = compiler.vars[x]
 
         op = ""
-        if x_var.in_reg and self.in_reg: # both in reg
+        if x_var.in_reg and self.in_reg: # reg <- reg
             op = "MOV"
         elif x_var.in_reg and not self.in_reg: # ram <- reg
             op = "STR"
         elif not x_var.in_reg and self.in_reg: # reg <- ram
             op = "LOD"
         elif not x_var.in_reg and not self.in_reg: # ram <- ram
-            reg = get_reg()
-            urcl.append([
-                f"LOD {reg} {x_var.pointer}",
-                f"STR {self.pointer} {reg}"
-            ])
-            free_reg(reg)
-            return
+            op = "CPY"
 
         urcl.append(f"{op} {x_var.pointer} {self.pointer}")
 
