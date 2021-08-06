@@ -1,5 +1,5 @@
 import compiler, parse, functions
-from functions import Var, get_reg, free_reg
+from functions import Var, get_reg, free_reg, get_reg_handle, free_reg_handle, handle_reg
 import error
 
 #* shunting yard *#
@@ -48,6 +48,17 @@ def precedence(operator) -> int:
         "!": 6
     }[operator]
 
+class Token:
+    def __init__(self, content: str, type: str):
+        self.content = content
+        self.type = type
+
+def get_type_from_token(token: str) -> str:
+    if token in operator_list + unary_functions:
+        return "operator"
+    elif token.isnumeric() or token in vars:
+        return "operand"
+
 def shunt(tokens: list[str]) -> list[str]: # returns in RPN
     print(f"shunting {tokens}")
     operators: list[str] = []
@@ -90,79 +101,124 @@ def shunt(tokens: list[str]) -> list[str]: # returns in RPN
 
     print(f"done shunting: {output}")
 
+    objectoutput = []
+    for out in output:
+        objectoutput.append(Token(out, get_type_from_token(out)))
+
     return output
 
-def handle(urcl: list[str], tempregs: list[str], x: str) -> str: # returns reg or imm
-    if x.isnumeric() or x[0] == "R": return x
-    else:
-        if x not in compiler.vars:
-            error.error(f"{x} is not in vars")
-        else:
-            tempregs.append(get_reg())
-            urcl.append(f"LOD {tempregs[-1]} {compiler.vars[x].pointer}")
-            return tempregs[-1]
+class Operand:
+    def __init__(self, content: str, type: str):
+        self.content = content
+        self.type = type
 
-def trash_operand(operand):
-    if operand[0] == "R": free_reg(operand)
+    def get(self, urcl: list[str], temps: list[str] = []) -> str: # returns reg
+        if self.type == "imm":
+            return self.content
 
-def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
-    a, b = operands[-2], operands[-1]
-    operands.pop(); operands.pop()
+        elif self.type == "handle":
+            reg = handle_reg(int(self.content), urcl)
+            temps.append(reg)
+            return reg
 
-    handletemps = []
-    tempregs.append(get_reg()) 
-    result_reg = tempregs[-1]
-    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a)} {handle(urcl, handletemps, b)}")
+        elif self.type == "var":
+            reg = compiler.vars[self.content].get(urcl)
+            temps.append(reg)
+            return reg
 
-    for reg in handletemps:
-        free_reg(reg)
+#//def handle(urcl: list[str], temp_handles: list[int], x: str) -> tuple: # returns () ()
+#//    if x.isnumeric() or x[0] == "R": return x
+#//    else:
+#//        if x not in compiler.vars:
+#//            error.error(f"{x} is not in vars")
+#//        else: # x is a variable
+#//            temp_handles.append(get_reg_handle(urcl))
+#//            #//urcl.append(f"LOD {tempregs[-1]} {compiler.vars[x].pointer}")
+#//            compiler.vars[x].get(urcl)
+#//            return temp_handles[-1]
 
-    operands.append(result_reg)
+def trash_operand(operand: Operand):
+    if operand.type == "handle":
+        free_reg_handle(operand.content)
+
+#def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
+#    a, b = operands[-2], operands[-1]
+#    operands.pop(); operands.pop()
+#
+#    handletemps = []
+#    tempregs.append(get_reg()) 
+#    result_reg = tempregs[-1]
+#    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a)} {handle(urcl, handletemps, b)}")
+#
+#    for reg in handletemps:
+#        free_reg(reg)
+#
+#    operands.append(result_reg)
+#    trash_operand(a); trash_operand(b)
+
+def handle_operator(token: str, operands: list[Operand], temp_handles: list[int], urcl: list[str]):
+    b = operands.pop()
+    a = operands.pop()
+
+    operand_temps = []
+    result_handle = get_reg_handle(urcl)
+    temp_handles.append(result_handle)
+    urcl.append(f"{operator_to_urcl[token]} {handle_reg(result_handle)} {a.get(urcl, operand_temps)} {b.get(urcl, operand_temps)}")
+
+    for handle in operand_temps:
+        free_reg_handle(handle)
+
+    operands.append(Operand(str(result_handle), "handle"))
     trash_operand(a); trash_operand(b)
 
-def to_urcl(rpn: list[str], ret_var: str, ret = False) -> list[str]:
+def to_urcl(rpn: list[Token], ret_var: str, ret = False) -> list[str]:
     if rpn == []: return []
-    operands = []
-    tempregs = []
+    operands: list[Operand] = []
+    temp_handles = []
     urcl = []
 
     for token in rpn:
-        if token.isnumeric() or token in compiler.vars or token[0] == "R":
-            operands.append(token)
-        elif token in operator_list:
+        if token.type == "operand":
+            if token.content.isnumeric():
+                operands.append(Operand(token.content, "imm"))
+            else:
+                assert token.content in compiler.vars
+                operands.append(Operand(token.content, "var"))
+
+        elif token.type == "operator":
             assert len(operands) >= 2
 
-            if not(operands[-1].isnumeric() and operands[-2].isnumeric()):
+            if not(operands[-1].type == operands[-2].type == "imm"):
                 if token != "**":
-                    handle_operator(token, operands, tempregs, urcl)
+                    handle_operator(token, operands, temp_handles, urcl)
                 else:
                     error.error("powers are unsupported for now, try again later")
                     
             else:
-                a, b = operands[-2], operands[-1]
-                operands = operands[:-2]
-                exec(f"operands.append(str(int(int(a) {token} int(b))))")
+                b = operands.pop().content
+                a = operands.pop().content
+                exec(f"operands.append(Operand(str(int(a {token.content} b)), 'imm'))")
+
+    assert len(operands) == 1
 
     if not ret:
-        if operands[-1] in compiler.vars:
-            reg = get_reg()
-            urcl += [f"LOD {reg} {compiler.vars[operands[-1]].pointer}",
-                     f"STR {compiler.vars[ret_var].pointer} {reg}"]
-            free_reg(reg)
-        else:
-            urcl.append(f"STR {compiler.vars[ret_var].pointer} {operands[-1]}")
+        compiler.vars[ret_var].set(operands[-1].content, urcl)
     else:
-        urcl.append(f"PSH {operands[-1]}")
+        if operands[-1].type == "imm":
+            urcl.append(f"PSH {operands[-1].content}")
+        elif operands[-1].type == "var":
+            urcl.append(f"PSH {compiler.vars[operands[-1].content].get(urcl)}")
+        elif operands[-1].type == "handle":
+            urcl.append(f"PSH {handle_reg(int(operands[-1].content), urcl)}")
 
-    for op in operands:
-        if op[0] == "R":
-            free_reg(op)
+    for handle in temp_handles:
+        free_reg_handle(handle)
 
     return urcl
 
 #* evaluate *#
 def call_function(tokens: list[str], urcl: list[str], send_args: list[str], func_name: str, ret_var: str) -> list[str]: # returns urcl
-    urcl += [f"PSH {compiler.vars[x].pointer}" for x in send_args]
+    urcl += [f"PSH {compiler.vars[x].pointer}" for x in send_args] # todo make vars use handles
 
     if tokens[0] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1: # only a function
         name = ret_var
@@ -249,7 +305,7 @@ def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_re
     if auto_allocate and not ret:
         ret_var = Var.temp_var(reg = try_reg)
 
-    urcl += to_urcl(rpn, ret_var, ret) # todo change to_urcl to use variable and not pointer
+    urcl += to_urcl(rpn, ret_var, ret)
 
     # step 4. profit
     return ret_var
