@@ -154,6 +154,15 @@ def update_use(handle: int):
         handle_use.remove(handle)
         handle_use.insert(0, handle)
 
+def unarchive(handle: int, reg: str, urcl: list[str]) -> str:
+    global handle_to_reg
+
+    name = f'archive_{handle}'
+    urcl.append(f"LOD {reg} {compiler.vars[name]}")
+    handle_to_reg[handle] = reg
+
+    return name
+
 def handle_reg(handle: int, urcl: list[str]) -> str: # returns reg and alters urcl
     global archived_handles, handle_to_reg
 
@@ -164,8 +173,7 @@ def handle_reg(handle: int, urcl: list[str]) -> str: # returns reg and alters ur
         if has_free_space(): # free space to use
             reg = get_reg()
 
-            urcl.append(f"LOD {reg} {compiler.vars[f'archive_{handle}']}")
-            handle_to_reg[handle] = reg
+            unarchive(handle, reg, urcl)
 
         else: # no free space, must archive another register
             #1. archive last used register
@@ -174,9 +182,7 @@ def handle_reg(handle: int, urcl: list[str]) -> str: # returns reg and alters ur
             archive_reg(last_handle, urcl)
 
             #2. unarchive where he was
-            name = f'archive_{handle}'
-            urcl.append(f"LOD {last_reg} {compiler.vars[name]}")
-            handle_to_reg[handle] = last_reg
+            name = unarchive(handle, last_reg, urcl)
             compiler.vars.pop(name)
 
         archived_handles[handle] = False
