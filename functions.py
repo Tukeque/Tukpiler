@@ -62,8 +62,17 @@ class Var:
         else:
             return self.pointer
 
-    def set(self, x, urcl: list[str]):
+    def set(self, x: str, urcl: list[str]):
         if x == self.name: return
+        if x.isnumeric():
+            op = ""
+            if self.in_reg:
+                op = "IMM"
+            else:
+                op = "STR"
+            urcl.append(f"{op} {self.pointer} {x}")
+            return
+
         x_var = compiler.vars[x]
 
         op = ""
