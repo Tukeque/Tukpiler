@@ -114,6 +114,7 @@ class Func():
 archived_handles: dict[int, bool] = {}
 handle_to_reg: dict[int, str] = {} # has priority over archived_handles
 handle_use = []
+next_reg_handle = 0
 
 usedregs = [0] # reg 0 doesn't count
 def get_reg() -> str:
@@ -190,3 +191,43 @@ def handle_reg(handle: int, urcl: list[str]) -> str: # returns reg and alters ur
 
     else: # register is available and in register form
         return handle_to_reg[handle]
+
+def get_reg_handle(urcl: list[str]) -> int:
+    global next_reg_handle, handle_to_reg, archived_handles
+
+    handle = next_reg_handle
+    next_reg_handle += 1
+    update_use(handle)
+
+    # get a free reg
+    if has_free_space():
+        # free space to use
+        reg = get_reg()
+        handle_to_reg[handle] = reg
+        archived_handles[handle] = False
+    else:
+        # gotta archive another reg
+        last_handle = handle_use[-1]
+        last_reg = handle_to_reg[last_handle]
+        archive_reg(last_handle, urcl)
+
+        handle_to_reg[handle] = last_reg
+        archived_handles[handle] = False
+
+    return handle
+
+def free_reg_handle(handle: int):
+    global handle_to_reg, archived_handles, handle_use
+
+    if archived_handles[handle] == True:
+        # if archived, remove variable
+        name = f'archive_{handle}'
+        compiler.vars.pop(name)
+    else:
+        # in reg, free reg
+        reg = handle_to_reg[handle]
+        free_reg(reg)
+
+    handle_to_reg.pop(handle)
+    archived_handles.pop(handle)
+    handle_use.remove(handle)
