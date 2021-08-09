@@ -59,7 +59,7 @@ def get_type_from_token(token: str) -> str:
     elif token.isnumeric() or token in vars:
         return "operand"
 
-def shunt(tokens: list[str]) -> list[str]: # returns in RPN
+def shunt(tokens: list[str]) -> list[Token]: # returns in RPN
     print(f"shunting {tokens}")
     operators: list[str] = []
     output: list[str] = []
@@ -112,19 +112,29 @@ class Operand:
         self.content = content
         self.type = type
 
-    def get(self, urcl: list[str], temps: list[str] = []) -> str: # returns reg
+    def get(self, urcl: list[str], temp_handles: list[int] = []) -> str: # returns reg
         if self.type == "imm":
             return self.content
 
         elif self.type == "handle":
             reg = handle_reg(int(self.content), urcl)
-            temps.append(reg)
+            temp_handles.append(int(self.content))
             return reg
 
         elif self.type == "var":
             reg = compiler.vars[self.content].get(urcl)
-            temps.append(reg)
+            temp_handles.append(int(self.content))
             return reg
+
+    def push(self, urcl: list[str]): # TODO complex function return
+        if self.type == "imm":
+            urcl.append(f"PSH {self.content}")
+
+        elif self.type == "var":
+            urcl.append(f"PSH {compiler.vars[self.content].get(urcl)}")
+
+        elif self.type == "handle":
+            urcl.append(f"PSH {handle_reg(int(self.content), urcl)}")
 
 #//def handle(urcl: list[str], temp_handles: list[int], x: str) -> tuple: # returns () ()
 #//    if x.isnumeric() or x[0] == "R": return x
@@ -139,7 +149,7 @@ class Operand:
 
 def trash_operand(operand: Operand):
     if operand.type == "handle":
-        free_reg_handle(operand.content)
+        free_reg_handle(int(operand.content))
 
 #def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
 #    a, b = operands[-2], operands[-1]
@@ -204,12 +214,7 @@ def to_urcl(rpn: list[Token], ret_var: str, ret = False) -> list[str]:
     if not ret:
         compiler.vars[ret_var].set(operands[-1].content, urcl)
     else:
-        if operands[-1].type == "imm":
-            urcl.append(f"PSH {operands[-1].content}")
-        elif operands[-1].type == "var":
-            urcl.append(f"PSH {compiler.vars[operands[-1].content].get(urcl)}")
-        elif operands[-1].type == "handle":
-            urcl.append(f"PSH {handle_reg(int(operands[-1].content), urcl)}")
+        operands[-1].push(urcl)
 
     for handle in temp_handles:
         free_reg_handle(handle)
