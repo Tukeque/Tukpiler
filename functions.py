@@ -43,6 +43,9 @@ class Var:
         self.width = width
         self.identifier = get_variable_identifier()
         
+        # TODO handles
+        self.handle = 0
+
         if not at_zero and argument == False:
             self.pointer = f"{'M' if config.config['modfix'] == True else '#'}{get_variable_free_pointer(width)}"
         elif argument == True:
@@ -54,38 +57,42 @@ class Var:
 
         self.in_reg = in_reg
 
+    def get_pointer(self, urcl: list[str]) -> str:
+        if not self.in_reg:
+            return self.pointer
+        else: # in reg
+            # must archive handle
+            archive_reg(self.handle, urcl)
+            return compiler.vars[f"archived_{self.handle}"].pointer
+
     def get(self, urcl: list[str]) -> str:
         if not self.in_reg:
-            reg = get_reg()
-            urcl.append(f"LOD {reg} {self.pointer}")
-            return reg
+            return handle_reg(self.handle, urcl)
         else:
             return self.pointer
 
     def set(self, x: str, urcl: list[str]):
         if x == self.name: return
         if x.isnumeric():
-            op = ""
             if self.in_reg:
-                op = "IMM"
+                urcl.append(f"IMM {handle_reg(self.handle, urcl)} {x}")
             else:
-                op = "STR"
-            urcl.append(f"{op} {self.pointer} {x}")
+                urcl.append(f"STR {self.pointer} {x}")
             return
 
         x_var = compiler.vars[x]
 
-        op = ""
         if x_var.in_reg and self.in_reg: # reg <- reg
-            op = "MOV"
-        elif x_var.in_reg and not self.in_reg: # ram <- reg
-            op = "STR"
-        elif not x_var.in_reg and self.in_reg: # reg <- ram
-            op = "LOD"
-        elif not x_var.in_reg and not self.in_reg: # ram <- ram
-            op = "CPY"
+            urcl.append(f"MOV {handle_reg(x_var.handle)} {handle_reg(self.handle)}")
 
-        urcl.append(f"{op} {x_var.pointer} {self.pointer}")
+        elif x_var.in_reg and not self.in_reg: # ram <- reg
+            urcl.append(f"STR {x_var.pointer} {handle_reg(self.handle)}")
+
+        elif not x_var.in_reg and self.in_reg: # reg <- ram
+            urcl.append(f"LOD {handle_reg(x_var.handle)} {self.pointer}")
+
+        elif not x_var.in_reg and not self.in_reg: # ram <- ram
+            urcl.append(f"CPY {x_var.pointer} {self.pointer}")
 
     @staticmethod
     def temp_var(type = "num", reg = False) -> str:
