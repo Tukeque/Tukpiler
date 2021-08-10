@@ -71,8 +71,17 @@ class Var:
         else:
             return self.pointer
 
-    def set(self, x: str, urcl: list[str]):
+    def set(self, x, urcl: list[str]):
         if x == self.name: return
+        if type(x) == int: # handle
+            if not self.in_reg:
+                # ram <- reg
+                urcl.append(f"STR {self.pointer} {handle_reg(x, urcl)}")
+            else:
+                # reg <- reg
+                urcl.append(f"MOV {handle_reg(x, urcl)} {handle_reg(self.handle)}")
+            return
+
         if x.isnumeric():
             if self.in_reg:
                 urcl.append(f"IMM {handle_reg(self.handle, urcl)} {x}")
