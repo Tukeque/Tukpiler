@@ -1,5 +1,5 @@
-import compiler, parse, functions
-from functions import Var, get_reg, free_reg, get_reg_handle, free_reg_handle, handle_reg
+import compiler, parse, functions, config
+from functions import Var, archive_reg, get_reg, free_reg, get_reg_handle, free_reg_handle, handle_reg
 import error
 
 #* shunting yard *#
@@ -127,14 +127,33 @@ class Operand:
             return reg
 
     def push(self, urcl: list[str]): # TODO complex function return
-        if self.type == "imm":
-            urcl.append(f"PSH {self.content}")
+        if config.config["complex"] == True:
+            if self.type == "imm": # make var
+                name = Var.temp_var()
+                compiler.vars[name].set(self.content, urcl)
+                urcl.append(f"PSH {compiler.vars[name].pointer}")
 
-        elif self.type == "var":
-            urcl.append(f"PSH {compiler.vars[self.content].get(urcl)}")
+            elif self.type == "var": # easy
+                if not compiler.vars[self.content].in_reg: # in memory
+                    urcl.append(f"PSH {compiler.vars[self.content].pointer}")
+                else: # in reg
+                    handle = compiler.vars[self.content].handle
+                    archive_reg(handle, urcl)
+                    urcl.append(f"PSH {compiler.vars[f'archive_{handle}'].pointer}")
 
-        elif self.type == "handle":
-            urcl.append(f"PSH {handle_reg(int(self.content), urcl)}")
+            elif self.type == "handle":
+                handle = int(self.content)
+                archive_reg(handle, urcl)
+                urcl.append(f"PSH {compiler.vars[f'archive_{handle}'].pointer}")
+        else:
+            if self.type == "imm":
+                urcl.append(f"PSH {self.content}")
+
+            elif self.type == "var":
+                urcl.append(f"PSH {compiler.vars[self.content].get(urcl)}")
+
+            elif self.type == "handle":
+                urcl.append(f"PSH {handle_reg(int(self.content), urcl)}")
 
 #//def handle(urcl: list[str], temp_handles: list[int], x: str) -> tuple: # returns () ()
 #//    if x.isnumeric() or x[0] == "R": return x
