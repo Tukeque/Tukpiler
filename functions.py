@@ -256,3 +256,6 @@ def free_reg_handle(handle: int):
     handle_to_reg.pop(handle)
     archived_handles.pop(handle)
     handle_use.remove(handle)
+
+def get_reg_from_handle(handle: int):
+    return handle_to_reg[handle]
