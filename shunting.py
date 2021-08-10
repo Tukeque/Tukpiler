@@ -56,7 +56,7 @@ class Token:
 def get_type_from_token(token: str) -> str:
     if token in operator_list + unary_functions:
         return "operator"
-    elif token.isnumeric() or token in vars:
+    elif token.isnumeric() or token in compiler.vars:
         return "operand"
 
 def shunt(tokens: list[str]) -> list[Token]: # returns in RPN
@@ -105,7 +105,7 @@ def shunt(tokens: list[str]) -> list[Token]: # returns in RPN
     for out in output:
         objectoutput.append(Token(out, get_type_from_token(out)))
 
-    return output
+    return objectoutput
 
 class Operand:
     def __init__(self, content: str, type: str):
@@ -122,9 +122,10 @@ class Operand:
             return reg
 
         elif self.type == "var":
-            reg = compiler.vars[self.content].get(urcl)
-            temp_handles.append(int(self.content))
-            return reg
+            reg_handle = compiler.vars[self.content].get(urcl)
+            if not compiler.vars[self.content].in_reg:
+                temp_handles.append(reg_handle)
+            return handle_reg(reg_handle, urcl)
 
     def push(self, urcl: list[str]):
         if config.config["complex"] == True:
@@ -155,50 +156,30 @@ class Operand:
             elif self.type == "handle":
                 urcl.append(f"PSH {handle_reg(int(self.content), urcl)}")
 
-#//def handle(urcl: list[str], temp_handles: list[int], x: str) -> tuple: # returns () ()
-#//    if x.isnumeric() or x[0] == "R": return x
-#//    else:
-#//        if x not in compiler.vars:
-#//            error.error(f"{x} is not in vars")
-#//        else: # x is a variable
-#//            temp_handles.append(get_reg_handle(urcl))
-#//            #//urcl.append(f"LOD {tempregs[-1]} {compiler.vars[x].pointer}")
-#//            compiler.vars[x].get(urcl)
-#//            return temp_handles[-1]
-
 def trash_operand(operand: Operand):
     if operand.type == "handle":
         free_reg_handle(int(operand.content))
 
-#def handle_operator(token: str, operands: list[str], tempregs: list[str], urcl: list[str]):
-#    a, b = operands[-2], operands[-1]
-#    operands.pop(); operands.pop()
-#
-#    handletemps = []
-#    tempregs.append(get_reg()) 
-#    result_reg = tempregs[-1]
-#    urcl.append(f"{operator_to_urcl[token]} {result_reg} {handle(urcl, handletemps, a)} {handle(urcl, handletemps, b)}")
-#
-#    for reg in handletemps:
-#        free_reg(reg)
-#
-#    operands.append(result_reg)
-#    trash_operand(a); trash_operand(b)
-
-def handle_operator(token: str, operands: list[Operand], temp_handles: list[int], urcl: list[str]):
+def handle_operator(token: Token, operands: list[Operand], temp_handles: list[int], urcl: list[str]):
     b = operands.pop()
     a = operands.pop()
 
     operand_temps = []
     result_handle = get_reg_handle(urcl)
     temp_handles.append(result_handle)
-    urcl.append(f"{operator_to_urcl[token]} {handle_reg(result_handle)} {a.get(urcl, operand_temps)} {b.get(urcl, operand_temps)}")
+
+    for x in [a, b]:
+        if x.content.isnumeric():
+            if int(x.content) in temp_handles: # was a temp_handle before
+                temp_handles.remove(int(x.content))
+
+    urcl.append(f"{operator_to_urcl[token.content]} {handle_reg(result_handle, urcl)} {a.get(urcl, operand_temps)} {b.get(urcl, operand_temps)}")
 
     for handle in operand_temps:
         free_reg_handle(handle)
 
     operands.append(Operand(str(result_handle), "handle"))
-    trash_operand(a); trash_operand(b)
+    #trash_operand(a); trash_operand(b)
 
 def to_urcl(rpn: list[Token], ret_var: str, ret = False) -> list[str]:
     if rpn == []: return []
@@ -318,14 +299,17 @@ def resolve(tokens: list[str], urcl: list[str], ret_var: str = "") -> list[str]:
 def evaluate(tokens: list[str], urcl, auto_allocate = True, ret_var = "", try_reg = False, ret = False) -> str:
     if len(tokens) == 1 and tokens[0] in compiler.vars:
         if ret:
-            reg = compiler.vars[tokens[0]].get(urcl)
-            urcl.append(f"PSH {reg}")
-            free_reg(reg)
+            reg_handle = compiler.vars[tokens[0]].get(urcl)
+            urcl.append(f"PSH {handle_reg(reg_handle, urcl)}")
+            if not compiler.vars[tokens[0]].in_reg:
+                free_reg_handle(reg_handle)
             return tokens[0]
         else:
             return tokens[0]
     if tokens == []:
-        return Var(f"NULL_{functions.nextvariableidentifier}", "none", 1, at_zero=True)
+        name = f"NULL_{functions.nextvariableidentifier}"
+        compiler.vars[name] = Var(name, "none", 1, at_zero=True)
+        return name
 
     # step 1. handle functions(ok) and in-class methods/variables(todo)
     if auto_allocate:
