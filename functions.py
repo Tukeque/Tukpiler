@@ -92,13 +92,13 @@ class Var:
         x_var = compiler.vars[x]
 
         if x_var.in_reg and self.in_reg: # reg <- reg
-            urcl.append(f"MOV {handle_reg(x_var.handle)} {handle_reg(self.handle)}")
+            urcl.append(f"MOV {handle_reg(x_var.handle, urcl)} {handle_reg(self.handle, urcl)}")
 
         elif x_var.in_reg and not self.in_reg: # ram <- reg
-            urcl.append(f"STR {x_var.pointer} {handle_reg(self.handle)}")
+            urcl.append(f"STR {x_var.pointer} {handle_reg(self.handle, urcl)}")
 
         elif not x_var.in_reg and self.in_reg: # reg <- ram
-            urcl.append(f"LOD {handle_reg(x_var.handle)} {self.pointer}")
+            urcl.append(f"LOD {handle_reg(x_var.handle, urcl)} {self.pointer}")
 
         elif not x_var.in_reg and not self.in_reg: # ram <- ram
             urcl.append(f"CPY {x_var.pointer} {self.pointer}")
