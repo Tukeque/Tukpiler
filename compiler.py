@@ -21,6 +21,13 @@ cond_to_urcl_inverse = {
     "!=": "BRE" # BNQ
 }
 
+def find_var_from_pointer(pointer: str) -> str:
+    for var in vars:
+        if vars[var].pointer == pointer:
+            return var
+    error.error(f"couldnt find variable located at {pointer}")
+    return -1
+
 def add_urcl(content: list[str]):
     global urcl
     urcl += content
