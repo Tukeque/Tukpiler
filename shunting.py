@@ -1,5 +1,5 @@
 import compiler, parse, functions, config
-from functions import Var, archive_reg, get_reg, free_reg, get_reg_handle, free_reg_handle, handle_reg
+from functions import Var, archive_reg, get_reg, free_reg, get_reg_from_handle, get_reg_handle, free_reg_handle, handle_reg
 import error
 
 #* shunting yard *#
@@ -242,21 +242,35 @@ def to_urcl(rpn: list[Token], ret_var: str, ret = False) -> list[str]:
 
 #* evaluate *#
 def call_function(tokens: list[str], urcl: list[str], send_args: list[str], func_name: str, ret_var: str) -> list[str]: # returns urcl
-    urcl += [f"PSH {compiler.vars[x].pointer}" for x in send_args] # todo make vars use handles
+    urcl += [f"PSH {compiler.vars[x].get_pointer(urcl)}" for x in send_args]
 
     if tokens[0] in compiler.funcs and tokens.count("(") == tokens.count(")") == 1: # only a function
         name = ret_var
     else:
         name = functions.Var.temp_var()
-    reg = get_reg()
 
-    urcl += [
-                f"CAL .function_{func_name}",
-                f"POP {reg}",
-                f"STR {compiler.vars[name].pointer} {reg}"
-            ]
+    if config.config["complex"] == True:
+        reg_handle = get_reg_handle(urcl)
+        urcl += [
+                    f"CAL .function_{func_name}",
+                    f"POP {handle_reg(reg_handle, urcl)}",
+                ]
+        # handle_reg is pointer
+        
+        if not compiler.vars[name].in_reg:
+            urcl.append(f"CPY {compiler.vars[name].pointer} {get_reg_from_handle(reg_handle)}")
+        else:
+            urcl.append(f"LOD {handle_reg(compiler.vars[name].handle, urcl)} {get_reg_from_handle(reg_handle)}")
+    else:
+        reg_handle = get_reg_handle(urcl)
+        urcl += [
+                    f"CAL .function_{func_name}",
+                    f"POP {handle_reg(reg_handle, urcl)}",
+                ]
+        compiler.vars[name].set(reg_handle, urcl)
 
-    free_reg(reg)
+        free_reg_handle(reg_handle)
+
     return name
 
 def resolve_function(tokens: list[str], i: int, urcl: list[str], ret_var: str) -> str:
