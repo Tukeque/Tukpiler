@@ -65,11 +65,14 @@ class Var:
             archive_reg(self.handle, urcl)
             return compiler.vars[f"archived_{self.handle}"].pointer
 
-    def get(self, urcl: list[str]) -> str:
+    def get(self, urcl: list[str]) -> int:
         if not self.in_reg:
-            return handle_reg(self.handle, urcl)
+            #return self.pointer
+            reg_handle = get_reg_handle(urcl)
+            urcl.append(f"LOD {handle_reg(reg_handle, urcl)} {self.pointer}")
+            return reg_handle
         else:
-            return self.pointer
+            return self.handle
 
     def set(self, x, urcl: list[str]):
         if x == self.name: return
