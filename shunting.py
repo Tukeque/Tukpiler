@@ -126,7 +126,7 @@ class Operand:
             temp_handles.append(int(self.content))
             return reg
 
-    def push(self, urcl: list[str]): # TODO complex function return
+    def push(self, urcl: list[str]):
         if config.config["complex"] == True:
             if self.type == "imm": # make var
                 name = Var.temp_var()
