@@ -212,7 +212,11 @@ def to_urcl(rpn: list[Token], ret_var: str, ret = False) -> list[str]:
     assert len(operands) == 1
 
     if not ret:
-        compiler.vars[ret_var].set(operands[-1].content, urcl)
+        value = operands[-1].content
+        if operands[-1].type == "handle":
+            value = int(value)
+        
+        compiler.vars[ret_var].set(value, urcl)
     else:
         operands[-1].push(urcl)
 

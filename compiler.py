@@ -1,5 +1,5 @@
 import error, config, parse, functions
-from functions import Func, Var, free_reg, get_reg
+from functions import Func, Var, free_reg, get_reg, handle_reg
 from shunting import evaluate
 from copy import copy
 
@@ -40,7 +40,7 @@ def declare(tokens: list[str], urcl: list[str]):
     global vars
 
     type = tokens[0]
-    if type != "none" and type != "num" and config.config["complex"] == True:
+    if type != "none" and type != "num" and config.config["complex"] != True:
         error.error("trying to declare a non-num variable in non-complex mode")
 
     if type == "num": # declaring a number
@@ -54,7 +54,7 @@ def declare(tokens: list[str], urcl: list[str]):
 
     elif type == "none":
         name = tokens[1]
-        vars[name] = Var(name, type, functions.type_to_width[type], True)
+        vars[name] = Var(name, type, functions.type_to_width[type], in_reg=True)
         print("why would you even want to declare a none?")
 
 def compile_expr(tokens: list[str], urcl: list[str]):
@@ -71,7 +71,6 @@ def compile_expr(tokens: list[str], urcl: list[str]):
 
     if tokens[0] == "return": # returning
         if funcs[func_name].return_type == "num":
-            #//urcl += to_urcl(shunt(tokens[1:]), "", ret = True)
             evaluate(tokens[1:], urcl, ret=True)
             urcl += [f"PSH {func_ret_addr}", "RET"]
 
@@ -142,7 +141,7 @@ def evaluate_condition(tokens, urcl):
         type = vars[a].type
 
         if type == "num":
-            urcl.append(f"{cond_to_urcl_inverse[comparator]} .end_{cond_identifier} {vars[a].get(urcl)} {vars[b].get(urcl)}")
+            urcl.append(f"{cond_to_urcl_inverse[comparator]} .end_{cond_identifier} {handle_reg(vars[a].get(urcl), urcl)} {handle_reg(vars[b].get(urcl), urcl)}")
 
         elif type == "none":
             error.error("why are you trying to compare nones") #wtf am i suposed to do? compare nulls?
