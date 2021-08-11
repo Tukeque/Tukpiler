@@ -183,10 +183,12 @@ def update_use(handle: int):
         handle_use.remove(handle)
         handle_use.insert(0, handle)
 
+    print(f"update use {handle_use}")
+
 def unarchive(handle: int, reg: str, urcl: list[str]) -> str:
     global handle_to_reg
 
-    name = f'archive_{handle}'
+    name = f'archived_{handle}'
     urcl.append(f"LOD {reg} {compiler.vars[name]}")
     handle_to_reg[handle] = reg
 
@@ -249,7 +251,7 @@ def free_reg_handle(handle: int):
 
     if archived_handles[handle] == True:
         # if archived, remove variable
-        name = f'archive_{handle}'
+        name = f'archived_{handle}'
         compiler.vars.pop(name)
     else:
         # in reg, free reg
@@ -258,7 +260,10 @@ def free_reg_handle(handle: int):
 
     handle_to_reg.pop(handle)
     archived_handles.pop(handle)
-    handle_use.remove(handle)
+    try:
+        handle_use.remove(handle)
+    except:
+        pass
 
 def get_reg_from_handle(handle: int):
     return handle_to_reg[handle]

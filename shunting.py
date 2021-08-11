@@ -140,12 +140,12 @@ class Operand:
                 else: # in reg
                     handle = compiler.vars[self.content].handle
                     archive_reg(handle, urcl)
-                    urcl.append(f"PSH {compiler.vars[f'archive_{handle}'].pointer}")
+                    urcl.append(f"PSH {compiler.vars[f'archived_{handle}'].pointer}")
 
             elif self.type == "handle":
                 handle = int(self.content)
                 archive_reg(handle, urcl)
-                urcl.append(f"PSH {compiler.vars[f'archive_{handle}'].pointer}")
+                urcl.append(f"PSH {compiler.vars[f'archived_{handle}'].pointer}")
         else:
             if self.type == "imm":
                 urcl.append(f"PSH {self.content}")
@@ -244,6 +244,7 @@ def call_function(tokens: list[str], urcl: list[str], send_args: list[str], func
         
         if not compiler.vars[name].in_reg:
             urcl.append(f"CPY {compiler.vars[name].pointer} {get_reg_from_handle(reg_handle)}")
+            print("copy!")
         else:
             urcl.append(f"LOD {handle_reg(compiler.vars[name].handle, urcl)} {get_reg_from_handle(reg_handle)}")
     else:
