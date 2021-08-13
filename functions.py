@@ -168,7 +168,10 @@ def archive_reg(handle: int, urcl: list[str]):
     name = f"archived_{handle}"
     compiler.vars[name] = Var(name, "num", 1)
     chamber = compiler.vars[name]
-    handle_use.remove(handle) # remove because archived
+    try:
+        handle_use.remove(handle) # remove because archived
+    except:
+        pass
 
     # store to variable
     urcl.append(f"STR {chamber.pointer} {handle_to_reg[handle]}")
@@ -189,7 +192,7 @@ def unarchive(handle: int, reg: str, urcl: list[str]) -> str:
     global handle_to_reg
 
     name = f'archived_{handle}'
-    urcl.append(f"LOD {reg} {compiler.vars[name]}")
+    urcl.append(f"LOD {reg} {compiler.vars[name].pointer}")
     handle_to_reg[handle] = reg
 
     return name
